@@ -15,6 +15,7 @@ enum Result {
     RESULT_BAD_BLOCK_COUNT,
     RESULT_BAD_HEADER,
     RESULT_BAD_FILE_SIZE,
+    RESULT_BAD_FILE_VERSION,
     RESULT_NO_BLOCKS,
     RESULT_BANK_BLOCK_MISMATCH,
     RESULT_VOICE_BLOCK_MISMATCH,
@@ -50,6 +51,9 @@ struct MemoryBlocks {
     BankBlockFileHeader *bank_header() const;
     VoiceBlockFileHeader *voice_header() const;
     EffectBlockFileHeader *effect_header() const;
+
+    Bank *bank(size_t n) const;
+    Voice *voice(size_t n) const;
 
     size_t count() const { return count_; }
     FzFileType file_type() const { return file_type_; }

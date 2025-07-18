@@ -19,12 +19,9 @@ void block_test(API::MemoryBlocks &mb) {
             printf("= bank %u: \"%s\"\n", bank++, bank_block->name);
         }
         if(auto *voice_block = mb.voice_block(i)) {
-            for(size_t j = 0; j < 4; j++) {
-                if(voice < voice_count) {
-                    auto &v = (*voice_block)[j];
-                    printf("= voice %u: \"%s\"\n", voice++, v.name);
-                }
-            }
+            size_t q = voice_count > 4 ? 4 : voice_count;
+            printf("= voice %u: (%u)\n", voice++, q);
+            voice_count -= q;
         }
         if(auto *effect_block = mb.effect_block(i))  {
             printf("= (effect_block)\n");
@@ -42,6 +39,25 @@ void block_test(API::MemoryBlocks &mb) {
     }
 }
 
+void bank_test(API::MemoryBlocks &mb) {
+    size_t n = mb.header()->bank_count;
+    printf("%u banks:\n", n);
+    for(size_t i = 0; i < n; i++) {
+        if(auto *bank = mb.bank(i)) {
+            printf("+ bank %u: \"%s\"\n", i, bank->name);
+        }
+    }
+}
+
+void voice_test(API::MemoryBlocks &mb) {
+    size_t n = mb.header()->voice_count;
+    printf("%u voices:\n", n);
+    for(size_t i = 0; i < n; i++) {
+        if(auto *voice = mb.voice(i)) {
+            printf("_ voice %u: \"%s\"\n", i, voice->name);
+        }
+    }
+}
 
 void header_test(API::MemoryBlocks &mb, char filetype) {
     switch(filetype) {
@@ -98,7 +114,9 @@ int main(int argc, const char **argv) {
             printf("- No header?!\n");
         }
         block_test(mb);
-        header_test(mb, filetype);
+        bank_test(mb);
+        voice_test(mb);
+//        header_test(mb, filetype);
     } else {
         printf("Load error: %u\n", r);
     }

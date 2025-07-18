@@ -81,6 +81,25 @@ EffectBlockFileHeader *MemoryBlocks::effect_header() const {
     return nullptr;
 }
 
+Bank *MemoryBlocks::bank(size_t n) const {
+    if(n < header()->bank_count) {
+        return bank_block(n);
+    }
+    return nullptr;
+}
+
+Voice *MemoryBlocks::voice(size_t n) const {
+    size_t
+        banks = header()-> bank_count,
+        voices = header()->voice_count;
+    if(n < voices) {
+        if(auto *vb = voice_block( banks + ((n + 3) / 4) )) {
+            return &(*vb)[n % 4];
+        }
+    }
+    return nullptr;
+}
+
 BlockType MemoryBlocks::block_type(size_t n) const {
     if(n < count_) {
         return block_types_[n];
@@ -176,11 +195,12 @@ BlockLoader::BlockLoader(std::string_view filename) {
         storage_ = std::make_unique<uint8_t[]>(size_);
         size_t r = fread(storage_.get(), size_, 1, file);
         fclose(file);
-        if(r != 1) {
-            storage_ = nullptr;
-            size_ = 0;
+        if(r == 1) {
+            return;
         }
     }
+    storage_ = nullptr;
+    size_ = 0;
 }
 
 Result BlockLoader::load(MemoryBlocks &mb) {
@@ -193,6 +213,9 @@ Result BlockLoader::load(MemoryBlocks &mb) {
     const auto &h = header_(storage_.get());
     if(h.indicator != FzFileHeader::INDICATOR) {
         return RESULT_BAD_HEADER;
+    }
+    if(h.version != 1) {
+        return RESULT_BAD_FILE_VERSION;
     }
     size_t blocks = size_ / 1024;
     if(blocks != h.block_count) {
