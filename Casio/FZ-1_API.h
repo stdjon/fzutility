@@ -1,7 +1,7 @@
 #ifndef CASIO_FZ_1_API
 #define CASIO_FZ_1_API
 
-#include "./FZ-1.h"
+#include "Casio/FZ-1.h"
 #include <memory>
 
 namespace Casio::FZ_1::API {
@@ -41,17 +41,21 @@ enum BlockType: uint8_t {
 
 // Models a contiguous array of Blocks plus some sanity-checking logic
 struct MemoryBlocks {
+    // Access a specific block by index into the block array
     Block *block(size_t n) const;
     BankBlock *bank_block(size_t n) const;
     VoiceBlock *voice_block(size_t n) const;
     EffectBlock *effect_block(size_t n) const;
     WaveBlock *wave_block(size_t n) const;
 
+    // Access file header and/or the block that contains it
     FzFileHeader *header() const;
     BankBlockFileHeader *bank_header() const;
     VoiceBlockFileHeader *voice_header() const;
     EffectBlockFileHeader *effect_header() const;
 
+    // Access banks/voices by index: a bank address will match its corresponding
+    // block but individual voices can be inside a VoiceBlock
     Bank *bank(size_t n) const;
     Voice *voice(size_t n) const;
 
@@ -81,12 +85,17 @@ private:
 
 struct BlockLoader {
     BlockLoader(std::string_view filename);
+    BlockLoader(std::unique_ptr<uint8_t[]>&& storage, size_t size);
+    BlockLoader(void *storage, size_t size);
+    template<size_t N>BlockLoader(uint8_t storage[N]);
     Result load(MemoryBlocks &blocksOut);
 private:
     std::unique_ptr<uint8_t[]> storage_;
     size_t size_ = 0;
 };
 
+template<size_t N>BlockLoader::BlockLoader(uint8_t storage[N]):
+    BlockLoader(storage, N) {}
 
 //------------------------------------------------------------------------------
 // BlockDumper
@@ -94,9 +103,7 @@ private:
 struct BlockDumper {
     BlockDumper(std::string_view filename);
     Result add_block(Block *block);
-
 };
-
 
 } //Casio::FZ_1::API
 

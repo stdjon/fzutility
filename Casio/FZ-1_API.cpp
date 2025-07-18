@@ -1,4 +1,4 @@
-#include "./FZ-1_API.h"
+#include "Casio/FZ-1_API.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -72,10 +72,8 @@ VoiceBlockFileHeader *MemoryBlocks::voice_header() const {
 }
 
 EffectBlockFileHeader *MemoryBlocks::effect_header() const {
-    // Effect file, or full file with 0 banks and 0 voices
-    if( (file_type_ == TYPE_EFFECT) ||
-        ((file_type_ == TYPE_FULL) &&
-            !header()->bank_count && !header()->voice_count) ) {
+    // Effect file or full file
+    if((file_type_ == TYPE_EFFECT) || (file_type_ == TYPE_FULL)) {
         return static_cast<EffectBlockFileHeader*>(block_data(0));
     }
     return nullptr;
@@ -201,6 +199,16 @@ BlockLoader::BlockLoader(std::string_view filename) {
     }
     storage_ = nullptr;
     size_ = 0;
+}
+
+BlockLoader::BlockLoader(std::unique_ptr<uint8_t[]>&& storage, size_t size):
+    storage_(std::move(storage)),
+    size_(size) {}
+
+BlockLoader::BlockLoader(void *storage, size_t size):
+    storage_(std::make_unique<uint8_t[]>(size)),
+    size_(size) {
+    memcpy(storage_.get(), storage, size);
 }
 
 Result BlockLoader::load(MemoryBlocks &mb) {

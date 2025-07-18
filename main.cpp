@@ -89,7 +89,7 @@ void header_test(API::MemoryBlocks &mb, char filetype) {
 
 
 int main(int argc, const char **argv) {
-    std::string filename{ "fz_data\\effect.fze" };
+    std::string filename{ "fz_data\\bank.fzb" };
     char filetype = 'b';
     if(argc > 1) {
         filename = std::string{ argv[1] };
@@ -116,7 +116,7 @@ int main(int argc, const char **argv) {
         block_test(mb);
         bank_test(mb);
         voice_test(mb);
-//        header_test(mb, filetype);
+        header_test(mb, filetype);
     } else {
         printf("Load error: %u\n", r);
     }

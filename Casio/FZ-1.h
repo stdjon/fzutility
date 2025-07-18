@@ -262,4 +262,5 @@ struct UnknownBlock: Block {
 static_assert(sizeof(UnknownBlock) == 1024, "Casio FZ-1 UnknownBlock struct should be 1024 bytes");
 
 } // Casio::FZ_1
+
 #endif //CASIO_FZ_1

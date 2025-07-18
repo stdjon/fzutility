@@ -1,4 +1,4 @@
-#include "./FZ-1.h"
+#include "Casio/FZ-1.h"
 #include <assert.h>
 #include <stdio.h>
 

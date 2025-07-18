@@ -7,7 +7,7 @@ clean:
 	rm -rf $(target)
 
 $(target): $(cppfiles)
-	g++ -std=c++17 $^ -o $@
+	g++ -std=c++17 -I . $^ -o $@
 
 $(cppfiles): Casio/FZ-1.h Casio/FZ-1_API.h
 
