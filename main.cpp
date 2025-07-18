@@ -6,6 +6,43 @@
 using namespace Casio::FZ_1;
 
 
+void block_test(API::MemoryBlocks &mb) {
+    size_t n = mb.count();
+    printf("%u blocks:\n", n);
+    size_t
+        bank = 0,
+        voice = 0,
+        wave = 0,
+        voice_count = mb.header()->voice_count;
+    for(size_t i = 0; i < n; i++) {
+        if(auto *bank_block = mb.bank_block(i)) {
+            printf("= bank %u: \"%s\"\n", bank++, bank_block->name);
+        }
+        if(auto *voice_block = mb.voice_block(i)) {
+            for(size_t j = 0; j < 4; j++) {
+                if(voice < voice_count) {
+                    auto &v = (*voice_block)[j];
+                    printf("= voice %u: \"%s\"\n", voice++, v.name);
+                }
+            }
+        }
+        if(auto *effect_block = mb.effect_block(i))  {
+            printf("= (effect_block)\n");
+        }
+        if(auto *wave_block = mb.wave_block(i)) {
+            if(!wave++) {
+                printf("= wave(s): .");
+            } else {
+                putchar('.');
+            }
+        }
+    }
+    if(wave) {
+        putchar('\n');
+    }
+}
+
+
 void header_test(API::MemoryBlocks &mb, char filetype) {
     switch(filetype) {
         default: break;
@@ -37,15 +74,13 @@ void header_test(API::MemoryBlocks &mb, char filetype) {
 
 int main(int argc, const char **argv) {
     std::string filename{ "fz_data\\effect.fze" };
-    char filetype = 'v';
+    char filetype = 'b';
     if(argc > 1) {
         filename = std::string{ argv[1] };
     }
     if(argc > 2) {
         filetype = argv[2][0];
     }
-
-    //filename = std::string{ "fz_data/" } + filename;
 
     API::MemoryBlocks mb;
     API::BlockLoader bl(filename);
@@ -62,6 +97,7 @@ int main(int argc, const char **argv) {
         } else {
             printf("- No header?!\n");
         }
+        block_test(mb);
         header_test(mb, filetype);
     } else {
         printf("Load error: %u\n", r);

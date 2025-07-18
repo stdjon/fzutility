@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define TRACE //printf("@-> %u\n", __LINE__)
+#define TRACE //printf("@-> %s:%u\n", __FILE__, __LINE__)
 
 namespace Casio::FZ_1::API {
 
@@ -18,19 +18,31 @@ Block *MemoryBlocks::block(size_t n) const {
 }
 
 BankBlock *MemoryBlocks::bank_block(size_t n) const {
-    return static_cast<BankBlock*>(block_data(n));
+    if(block_type(n) == BT_BANK) {
+        return static_cast<BankBlock*>(block_data(n));
+    }
+    return nullptr;
 }
 
 VoiceBlock *MemoryBlocks::voice_block(size_t n) const {
-    return static_cast<VoiceBlock*>(block_data(n));
+    if(block_type(n) == BT_VOICE) {
+        return static_cast<VoiceBlock*>(block_data(n));
+    }
+    return nullptr;
 }
 
 EffectBlock *MemoryBlocks::effect_block(size_t n) const {
-    return static_cast<EffectBlock*>(block_data(n));
+    if(block_type(n) == BT_EFFECT) {
+        return static_cast<EffectBlock*>(block_data(n));
+    }
+    return nullptr;
 }
 
 WaveBlock *MemoryBlocks::wave_block(size_t n) const {
-    return static_cast<WaveBlock*>(block_data(n));
+    if(block_type(n) == BT_WAVE) {
+        return static_cast<WaveBlock*>(block_data(n));
+    }
+    return nullptr;
 }
 
 FzFileHeader *MemoryBlocks::header() const {
@@ -69,12 +81,30 @@ EffectBlockFileHeader *MemoryBlocks::effect_header() const {
     return nullptr;
 }
 
+BlockType MemoryBlocks::block_type(size_t n) const {
+    if(n < count_) {
+        return block_types_[n];
+    }
+    return BT_NONE;
+}
+
+char MemoryBlocks::block_type_as_char(size_t n) const {
+    switch(block_type(n)) {
+        case BT_BANK: return 'b';
+        case BT_EFFECT: return 'e';
+        case BT_VOICE: return 'v';
+        case BT_WAVE: return 'w';
+        default: [[fallthrough]]
+        case BT_NONE: return '_';
+    }
+}
+
 void *MemoryBlocks::block_data(size_t n) const {
     return (n < count_) ? &static_cast<UnknownBlock*>(data_)[n] : nullptr;
 }
 
 
-void MemoryBlocks::load(std::unique_ptr<uint8_t[]> &&storage, size_t count) {
+Result MemoryBlocks::load(std::unique_ptr<uint8_t[]> &&storage, size_t count) {
     storage_ = std::move(storage);
     data_ = storage_.get();
     count_ = count;
@@ -83,6 +113,52 @@ void MemoryBlocks::load(std::unique_ptr<uint8_t[]> &&storage, size_t count) {
     } else {
         file_type_ = TYPE_UNKNOWN;
     }
+    return parse();
+}
+
+
+Result MemoryBlocks::parse() {
+    block_types_ = std::make_unique<BlockType[]>(count_);
+    FzFileHeader *h = header();
+    size_t
+        bank_blocks = h->bank_count,
+        voice_blocks = h->voice_count,
+        iterator = 0;
+    if(!bank_blocks && !voice_blocks) {
+        if(h->block_count == 1) {
+            block_types_[0] = BT_EFFECT;
+            return RESULT_OK;
+        }
+    }
+    if(bank_blocks) {
+        if(bank_blocks > count_) {
+            return RESULT_BANK_BLOCK_MISMATCH;
+        }
+        for(size_t i = 0; i < bank_blocks; i++) {
+            block_types_[iterator++] = BT_BANK;
+        }
+    }
+    if(voice_blocks) {
+        size_t voice_count = (voice_blocks + 3) / 4;
+        if((voice_count + iterator) > count_) {
+            return RESULT_VOICE_BLOCK_MISMATCH;
+        }
+        for(size_t i = 0; i < voice_count; i++) {
+            block_types_[iterator++] = BT_VOICE;
+        }
+    }
+    if(h->wave_block_count) {
+        if(h->wave_block_count + iterator > count_) {
+            return RESULT_WAVE_BLOCK_MISMATCH;
+        }
+        for(size_t i = 0; i < h->wave_block_count; i++) {
+            block_types_[iterator++] = BT_WAVE;
+        }
+    }
+    if(iterator != count_) {
+        return RESULT_BLOCK_COUNT_MISMATCH;
+    }
+    return RESULT_OK;
 }
 
 
@@ -122,8 +198,7 @@ Result BlockLoader::load(MemoryBlocks &mb) {
     if(blocks != h.block_count) {
         return RESULT_BAD_BLOCK_COUNT;
     }
-    mb.load(std::move(storage_), blocks);
-    return RESULT_OK;
+    return mb.load(std::move(storage_), blocks);
 }
 
 

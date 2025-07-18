@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define TRACE //printf("@-> %u\n", __LINE__)
+#define TRACE //printf("@-> %s:%u\n", __FILE__, __LINE__)
 
 namespace Casio::FZ_1 {
 
