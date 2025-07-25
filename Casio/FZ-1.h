@@ -244,10 +244,12 @@ static_assert(sizeof(EffectBlockFileHeader) == 1024, "Casio FZ-1 EffectBlockFile
 //------------------------------------------------------------------------------
 // Wave Block
 
-struct WaveBlock: Block {
+struct Wave {
     int16_t samples[512];
 };
+static_assert(sizeof(Wave) == 1024, "Casio FZ-1 Wave struct should be 1024 bytes");
 
+struct WaveBlock: Block, Wave {};
 static_assert(sizeof(WaveBlock) == 1024, "Casio FZ-1 WaveBlock struct should be 1024 bytes");
 
 //------------------------------------------------------------------------------

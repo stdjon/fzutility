@@ -58,6 +58,7 @@ struct MemoryBlocks {
     // block but individual voices can be inside a VoiceBlock
     Bank *bank(size_t n) const;
     Voice *voice(size_t n) const;
+    Wave *wave(size_t n) const;
 
     size_t count() const { return count_; }
     FzFileType file_type() const { return file_type_; }

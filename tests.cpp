@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <functional>
+#include <string>
 
 using namespace Casio::FZ_1;
 
@@ -67,8 +68,10 @@ T_(test_empty_loader, {
     CHECK(!mb.wave_block(100));
     CHECK(!mb.bank(0));
     CHECK(!mb.voice(0));
+    CHECK(!mb.wave(0));
     CHECK(!mb.bank(100));
     CHECK(!mb.voice(100));
+    CHECK(!mb.wave(100));
 });
 
 T_(test_load_bank, {
@@ -93,8 +96,10 @@ T_(test_load_bank, {
     CHECK(!mb.wave_block(100));
     CHECK(mb.bank(0));
     CHECK(mb.voice(0));
+    CHECK(mb.wave(0));
     CHECK(!mb.bank(100));
     CHECK(!mb.voice(100));
+    CHECK(!mb.wave(100));
 
     FzFileHeader *header = mb.header();
     CHECK(header);
@@ -167,8 +172,10 @@ T_(test_load_effect, {
     CHECK(!mb.wave_block(100));
     CHECK(!mb.bank(0));
     CHECK(!mb.voice(0));
+    CHECK(!mb.wave(0));
     CHECK(!mb.bank(100));
     CHECK(!mb.voice(100));
+    CHECK(!mb.wave(100));
 
     FzFileHeader *header = mb.header();
     CHECK(header);
@@ -222,8 +229,10 @@ T_(test_load_voice, {
     CHECK(!mb.wave_block(100));
     CHECK(!mb.bank(0));
     CHECK(mb.voice(0));
+    CHECK(mb.wave(0));
     CHECK(!mb.bank(100));
     CHECK(!mb.voice(100));
+    CHECK(!mb.wave(100));
 
     FzFileHeader *header = mb.header();
     CHECK(header);
@@ -260,7 +269,7 @@ T_(test_load_voice, {
 
 
 //------------------------------------------------------------------------------
-}// end of Tests::Tests()
+    }// end of Tests::Tests()
 
     void check_voice(Voice *voice) {
         CHECK(voice);

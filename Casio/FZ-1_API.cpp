@@ -82,7 +82,7 @@ EffectBlockFileHeader *MemoryBlocks::effect_header() const {
 
 Bank *MemoryBlocks::bank(size_t n) const {
     if(auto *h = header()) {
-        if(n < header()->bank_count) {
+        if(n < h->bank_count) {
             return bank_block(n);
         }
     }
@@ -93,14 +93,28 @@ Voice *MemoryBlocks::voice(size_t n) const {
     size_t
         banks = 0,
         voices = 0;
-    if(header()) {
-        banks = header()-> bank_count;
-        voices = header()->voice_count;
+    if(auto *h = header()) {
+        banks = h->bank_count;
+        voices = h->voice_count;
     }
     if(n < voices) {
         if(auto *vb = voice_block( banks + ((n + 3) / 4) )) {
             return &(*vb)[n % 4];
         }
+    }
+    return nullptr;
+}
+
+Wave *MemoryBlocks::wave(size_t n) const {
+    size_t
+        offset = 0,
+        wave_block_count = 0;
+    if(auto *h = header()) {
+        offset = h->bank_count + h->voice_count;
+        wave_block_count = h->wave_block_count;
+    }
+    if(n < wave_block_count) {
+        return wave_block(n + offset);
     }
     return nullptr;
 }
