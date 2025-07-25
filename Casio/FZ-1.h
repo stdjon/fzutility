@@ -241,7 +241,6 @@ struct EffectBlockFileHeader: Block, EffectPad_ {
 };
 static_assert(sizeof(EffectBlockFileHeader) == 1024, "Casio FZ-1 EffectBlockFileHeader struct should be 1024 bytes");
 
-
 //------------------------------------------------------------------------------
 // Wave Block
 

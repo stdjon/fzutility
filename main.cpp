@@ -1,5 +1,6 @@
 #include "Casio/FZ-1.h"
 #include "Casio/FZ-1_API.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <string>
 
@@ -87,6 +88,38 @@ void header_test(API::MemoryBlocks &mb, char filetype) {
     }
 }
 
+void effect_test(API::MemoryBlocks &mb) {
+    for(size_t i = 0; i < mb.header()->block_count; i++) {
+        if(EffectBlock *eb = mb.effect_block(i)) {
+            printf("EffectBlock (%u):\n", i);
+            printf(". pitchbend_depth = %i\n", eb->pitchbend_depth);
+            printf(". master_volume = %i\n", eb->master_volume);
+            printf(". sustain_switch = %i\n", eb->sustain_switch);
+            printf(". modulation_lfo_pitch = %i\n", eb->modulation_lfo_pitch);
+            printf(". modulation_lfo_amplitude = %i\n", eb->modulation_lfo_amplitude);
+            printf(". modulation_lfo_filter = %i\n", eb->modulation_lfo_filter);
+            printf(". modulation_lfo_filter_q = %i\n", eb->modulation_lfo_filter_q);
+            printf(". modulation_filter = %i\n", eb->modulation_filter);
+            printf(". modulation_amplitude = %i\n", eb->modulation_amplitude);
+            printf(". modulation_filter_q = %i\n", eb->modulation_filter_q);
+            printf(". footvolume_lfo_pitch = %i\n", eb->footvolume_lfo_pitch);
+            printf(". footvolume_lfo_amplitude = %i\n", eb->footvolume_lfo_amplitude);
+            printf(". footvolume_lfo_filter = %i\n", eb->footvolume_lfo_filter);
+            printf(". footvolume_lfo_filter_q = %i\n", eb->footvolume_lfo_filter_q);
+            printf(". footvolume_amplitude = %i\n", eb->footvolume_amplitude);
+            printf(". footvolume_filter = %i\n", eb->footvolume_filter);
+            printf(". footvolume_filter_q = %i\n", eb->footvolume_filter_q);
+            printf(". aftertouch_lfo_pitch = %i\n", eb->aftertouch_lfo_pitch);
+            printf(". aftertouch_lfo_amplitude = %i\n", eb->aftertouch_lfo_amplitude);
+            printf(". aftertouch_lfo_filter = %i\n", eb->aftertouch_lfo_filter);
+            printf(". aftertouch_lfo_filter_q = %i\n", eb->aftertouch_lfo_filter_q);
+            printf(". aftertouch_amplitude = %i\n", eb->aftertouch_amplitude);
+            printf(". aftertouch_filter = %i\n", eb->aftertouch_filter);
+            printf(". aftertouch_filter_q = %i\n", eb->aftertouch_filter_q);
+        }
+    }
+}
+
 
 int main(int argc, const char **argv) {
     std::string filename{ "fz_data\\bank.fzb" };
@@ -117,8 +150,9 @@ int main(int argc, const char **argv) {
         bank_test(mb);
         voice_test(mb);
         header_test(mb, filetype);
+        effect_test(mb);
     } else {
         printf("Load error: %u\n", r);
     }
-    return 0;
+    return EXIT_SUCCESS;
 }

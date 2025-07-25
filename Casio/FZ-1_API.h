@@ -65,6 +65,9 @@ struct MemoryBlocks {
     BlockType block_type(size_t n) const;
     char block_type_as_char(size_t n) const;
 
+    bool is_empty() const { return !count_; }
+    explicit operator bool() const { return !is_empty(); }
+
 private:
     void *block_data(size_t n) const;
     Result load(std::unique_ptr<uint8_t[]> &&storage, size_t count);

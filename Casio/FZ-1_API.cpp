@@ -32,7 +32,8 @@ VoiceBlock *MemoryBlocks::voice_block(size_t n) const {
 }
 
 EffectBlock *MemoryBlocks::effect_block(size_t n) const {
-    if(block_type(n) == BT_EFFECT) {
+    if( (block_type(n) == BT_EFFECT) ||
+        (!n && (file_type_ == TYPE_FULL)) ) {
         return static_cast<EffectBlock*>(block_data(n));
     }
     return nullptr;
@@ -80,16 +81,22 @@ EffectBlockFileHeader *MemoryBlocks::effect_header() const {
 }
 
 Bank *MemoryBlocks::bank(size_t n) const {
-    if(n < header()->bank_count) {
-        return bank_block(n);
+    if(auto *h = header()) {
+        if(n < header()->bank_count) {
+            return bank_block(n);
+        }
     }
     return nullptr;
 }
 
 Voice *MemoryBlocks::voice(size_t n) const {
     size_t
-        banks = header()-> bank_count,
+        banks = 0,
+        voices = 0;
+    if(header()) {
+        banks = header()-> bank_count;
         voices = header()->voice_count;
+    }
     if(n < voices) {
         if(auto *vb = voice_block( banks + ((n + 3) / 4) )) {
             return &(*vb)[n % 4];
