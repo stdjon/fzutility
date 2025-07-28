@@ -41,7 +41,9 @@ enum BlockType: uint8_t {
 
 // Models a contiguous array of Blocks plus some sanity-checking logic
 struct MemoryBlocks {
-    // Access a specific block by index into the block array
+    // Low-level access to a specific block by index into the block array.
+    // For specific block types, if the block at the given index does not match
+    // the requested type, a null pointer is returned.
     Block *block(size_t n) const;
     BankBlock *bank_block(size_t n) const;
     VoiceBlock *voice_block(size_t n) const;
@@ -49,13 +51,16 @@ struct MemoryBlocks {
     WaveBlock *wave_block(size_t n) const;
 
     // Access file header and/or the block that contains it
+    // For specific header types, if block zero does not match the requested
+    // type, a null pointer is returned.
     FzFileHeader *header() const;
     BankBlockFileHeader *bank_header() const;
     VoiceBlockFileHeader *voice_header() const;
     EffectBlockFileHeader *effect_header() const;
 
-    // Access banks/voices by index: a bank address will match its corresponding
-    // block but individual voices can be inside a VoiceBlock
+    // Access banks/voices/waves by index: a bank address will usually match its
+    // corresponding block but multiple voices can coexist inside a VoiceBlock,
+    // and Waves are usually found after a non-zero amount of bank/voice blocks
     Bank *bank(size_t n) const;
     Voice *voice(size_t n) const;
     Wave *wave(size_t n) const;
@@ -68,6 +73,8 @@ struct MemoryBlocks {
 
     bool is_empty() const { return !count_; }
     explicit operator bool() const { return !is_empty(); }
+
+    void reset();
 
 private:
     void *block_data(size_t n) const;

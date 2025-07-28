@@ -207,6 +207,53 @@ T_(test_load_effect, {
     CHECK(effect_header->footvolume_amplitude = 64);
 });
 
+T_(test_load_full, {
+    auto bl = API::BlockLoader("fz_data/full.fzf");
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_OK);
+    CHECK(!mb.is_empty());
+    CHECK(mb);
+    CHECK(mb.file_type() == TYPE_FULL);
+    CHECK(mb.count() == 5);
+
+    CHECK(!mb.bank_header());
+    CHECK(mb.effect_header());
+    CHECK(mb.voice_header());
+    CHECK(!mb.bank_block(0));
+    CHECK(mb.effect_block(0));
+    CHECK(mb.voice_block(0));
+    CHECK(!mb.wave_block(0));
+    CHECK(!mb.bank_block(100));
+    CHECK(!mb.voice_block(100));
+    CHECK(!mb.bank_block(100));
+    CHECK(!mb.effect_block(100));
+    CHECK(!mb.wave_block(100));
+    CHECK(!mb.bank(0));
+    CHECK(mb.voice(0));
+    CHECK(mb.wave(0));
+    CHECK(!mb.bank(100));
+    CHECK(!mb.voice(100));
+    CHECK(!mb.wave(100));
+
+    EffectBlockFileHeader *effect_header = mb.effect_header();
+    CHECK(effect_header);
+    CHECK(effect_header->header.indicator == FzFileHeader::INDICATOR);
+    CHECK(effect_header->header.version == 1);
+    CHECK(effect_header->header.file_type == 0);
+    CHECK(effect_header->header.bank_count == 0);
+    CHECK(effect_header->header.voice_count == 1);
+    CHECK(effect_header->header.block_count == 5);
+    CHECK(effect_header->header.wave_block_count == 4);
+    CHECK(effect_header->pitchbend_depth = 24);
+    CHECK(effect_header->modulation_lfo_pitch = 64);
+    CHECK(effect_header->footvolume_amplitude = 64);
+
+    VoiceBlock *voice_block = mb.voice_block(0);
+    CHECK(voice_block);
+    check_voice((*voice_block)[0]);
+});
+
 T_(test_load_voice, {
     auto bl = API::BlockLoader("fz_data/voice.fzv");
     API::MemoryBlocks mb;
@@ -246,8 +293,7 @@ T_(test_load_voice, {
 
     VoiceBlock *voice_block = mb.voice_block(0);
     CHECK(voice_block);
-    Voice *voice = &(*voice_block)[0];
-    check_voice(voice);
+    check_voice((*voice_block)[0]);
 
     VoiceBlockFileHeader *voice_header = mb.voice_header();
     CHECK(voice_header);
@@ -259,65 +305,60 @@ T_(test_load_voice, {
     CHECK(voice_header->header.block_count == 5);
     CHECK(voice_header->header.wave_block_count == 4);
 
-    voice = &(*voice_header)[0];
-    check_voice(voice);
-
-    voice = mb.voice(0);
-    check_voice(voice);
-
+    check_voice((*voice_header)[0]);
+    check_voice(*mb.voice(0));
 });
 
 
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
 
-    void check_voice(Voice *voice) {
-        CHECK(voice);
-        CHECK(voice->data_start == 0);
-        CHECK(voice->data_end == 1928);
-        CHECK(voice->play_start == 96);
-        CHECK(voice->play_end == 1920);
-        CHECK(voice->loop == 0x13);
-        CHECK(voice->pitch_correction == 0);
-        CHECK(voice->filter == 0);
-        CHECK(voice->filter_q == 0);
-        CHECK(voice->dca_sustain == 0);
-        CHECK(voice->dca_end == 7);
-        CHECK(voice->dca_rate[0] == 127);
-        CHECK(voice->dca_end_level[0] == 255);
-        CHECK(voice->dcf_sustain == 0);
-        CHECK(voice->dcf_end == 7);
-        CHECK(voice->dcf_rate[0] == 127);
-        CHECK(voice->dcf_end_level[0] == 255);
-        CHECK(voice->lfo_delay == 0);
-        CHECK(voice->lfo_name == 128);
-        CHECK(voice->lfo_attack == 0);
-        CHECK(voice->lfo_rate == 64);
-        CHECK(voice->lfo_pitch == 0);
-        CHECK(voice->lfo_amplitude == 0);
-        CHECK(voice->lfo_filter == 0);
-        CHECK(voice->lfo_filter_q == 0);
-        CHECK(voice->velocity_filter_q_key_follow == 0);
-        CHECK(voice->amplitude_key_follow == 0);
-        CHECK(voice->amplitude_rate_key_follow == 0);
-        CHECK(voice->filter_key_follow == 0);
-        CHECK(voice->filter_rate_key_follow == 0);
-        CHECK(voice->velocity_amplitude_key_follow == 0);
-        CHECK(voice->velocity_amplitude_rate_key_follow == 0);
-        CHECK(voice->velocity_filter_key_follow == 0);
-        CHECK(voice->velocity_filter_rate_key_follow == 0);
-        CHECK(voice->midi_hi == 96);
-        CHECK(voice->midi_lo == 36);
-        CHECK(voice->midi_origin == 72);
-        CHECK(voice->frequency == 0);
-        CHECK(voice->loop_sustain_point == 0);
-        CHECK(voice->loop_end_point == 0);
-        CHECK(voice->loop_start[0] == 0);
-        CHECK(voice->loop_xfade_time[0] == 0);
-        CHECK(voice->loop_time[0] == 100);
-        CHECK(voice->name[12] == 0);
-        CHECK(voice->name[13] == 0);
-        CHECK(std::string{ voice->name } == "AAAAAAAAAAAA");
+    void check_voice(Voice &voice) {
+        CHECK(voice.data_start == 0);
+        CHECK(voice.data_end == 1928);
+        CHECK(voice.play_start == 96);
+        CHECK(voice.play_end == 1920);
+        CHECK(voice.loop == 0x13);
+        CHECK(voice.pitch_correction == 0);
+        CHECK(voice.filter == 0);
+        CHECK(voice.filter_q == 0);
+        CHECK(voice.dca_sustain == 0);
+        CHECK(voice.dca_end == 7);
+        CHECK(voice.dca_rate[0] == 127);
+        CHECK(voice.dca_end_level[0] == 255);
+        CHECK(voice.dcf_sustain == 0);
+        CHECK(voice.dcf_end == 7);
+        CHECK(voice.dcf_rate[0] == 127);
+        CHECK(voice.dcf_end_level[0] == 255);
+        CHECK(voice.lfo_delay == 0);
+        CHECK(voice.lfo_name == 128);
+        CHECK(voice.lfo_attack == 0);
+        CHECK(voice.lfo_rate == 64);
+        CHECK(voice.lfo_pitch == 0);
+        CHECK(voice.lfo_amplitude == 0);
+        CHECK(voice.lfo_filter == 0);
+        CHECK(voice.lfo_filter_q == 0);
+        CHECK(voice.velocity_filter_q_key_follow == 0);
+        CHECK(voice.amplitude_key_follow == 0);
+        CHECK(voice.amplitude_rate_key_follow == 0);
+        CHECK(voice.filter_key_follow == 0);
+        CHECK(voice.filter_rate_key_follow == 0);
+        CHECK(voice.velocity_amplitude_key_follow == 0);
+        CHECK(voice.velocity_amplitude_rate_key_follow == 0);
+        CHECK(voice.velocity_filter_key_follow == 0);
+        CHECK(voice.velocity_filter_rate_key_follow == 0);
+        CHECK(voice.midi_hi == 96);
+        CHECK(voice.midi_lo == 36);
+        CHECK(voice.midi_origin == 72);
+        CHECK(voice.frequency == 0);
+        CHECK(voice.loop_sustain_point == 0);
+        CHECK(voice.loop_end_point == 0);
+        CHECK(voice.loop_start[0] == 0);
+        CHECK(voice.loop_xfade_time[0] == 0);
+        CHECK(voice.loop_time[0] == 100);
+        CHECK(voice.name[12] == 0);
+        CHECK(voice.name[13] == 0);
+        CHECK(std::string{ voice.name } == "AAAAAAAAAAAA");
     }
 };
 

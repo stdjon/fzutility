@@ -120,15 +120,33 @@ void effect_test(API::MemoryBlocks &mb) {
     }
 }
 
+void wave_test(API::MemoryBlocks &mb, size_t n) {
+    if(Wave *w = mb.wave(n)) {
+        printf("wave(%u):\n", n);
+        for(size_t i = 0; i < 32; i++) {
+            for(size_t j = 0; j < 16; j++) {
+                if(!j) {
+                    printf("' ");
+                }
+                printf("%04x ", static_cast<uint16_t>(w->samples[i * 16 + j]));
+            }
+            putchar('\n');
+        }
+    }
+}
 
 int main(int argc, const char **argv) {
     std::string filename{ "fz_data\\bank.fzb" };
     char filetype = 'b';
+    size_t waveblock = 0;
     if(argc > 1) {
         filename = std::string{ argv[1] };
     }
     if(argc > 2) {
         filetype = argv[2][0];
+        if((filetype == 'w') && argv[2][1]) {
+            waveblock = atoi(argv[2] + 1);
+        }
     }
 
     API::MemoryBlocks mb;
@@ -151,6 +169,9 @@ int main(int argc, const char **argv) {
         voice_test(mb);
         header_test(mb, filetype);
         effect_test(mb);
+        if(filetype == 'w') {
+            wave_test(mb, waveblock);
+        }
     } else {
         printf("Load error: %u\n", r);
     }

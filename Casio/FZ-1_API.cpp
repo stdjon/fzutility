@@ -91,14 +91,14 @@ Bank *MemoryBlocks::bank(size_t n) const {
 
 Voice *MemoryBlocks::voice(size_t n) const {
     size_t
-        banks = 0,
-        voices = 0;
+        bank_count = 0,
+        voice_count = 0;
     if(auto *h = header()) {
-        banks = h->bank_count;
-        voices = h->voice_count;
+        bank_count = h->bank_count;
+        voice_count = h->voice_count;
     }
-    if(n < voices) {
-        if(auto *vb = voice_block( banks + ((n + 3) / 4) )) {
+    if(n < voice_count) {
+        if(auto *vb = voice_block( bank_count + ((n + 3) / 4) )) {
             return &(*vb)[n % 4];
         }
     }
@@ -137,6 +137,14 @@ char MemoryBlocks::block_type_as_char(size_t n) const {
     }
 }
 
+void MemoryBlocks::reset() {
+    storage_.reset();
+    block_types_.reset();
+    data_ = nullptr;
+    count_ = 0;
+    file_type_ = TYPE_UNKNOWN;
+}
+
 void *MemoryBlocks::block_data(size_t n) const {
     return (n < count_) ? &static_cast<UnknownBlock*>(data_)[n] : nullptr;
 }
@@ -161,6 +169,7 @@ Result MemoryBlocks::parse() {
     size_t
         bank_blocks = h->bank_count,
         voice_blocks = h->voice_count,
+        wave_blocks = h->wave_block_count,
         iterator = 0;
     if(!bank_blocks && !voice_blocks) {
         if(h->block_count == 1) {
@@ -185,11 +194,11 @@ Result MemoryBlocks::parse() {
             block_types_[iterator++] = BT_VOICE;
         }
     }
-    if(h->wave_block_count) {
-        if(h->wave_block_count + iterator > count_) {
+    if(wave_blocks) {
+        if(wave_blocks + iterator > count_) {
             return RESULT_WAVE_BLOCK_MISMATCH;
         }
-        for(size_t i = 0; i < h->wave_block_count; i++) {
+        for(size_t i = 0; i < wave_blocks; i++) {
             block_types_[iterator++] = BT_WAVE;
         }
     }
@@ -233,6 +242,7 @@ BlockLoader::BlockLoader(void *storage, size_t size):
 }
 
 Result BlockLoader::load(MemoryBlocks &mb) {
+    mb.reset();
     if(!size_) {
         return RESULT_NO_BLOCKS;
     }
