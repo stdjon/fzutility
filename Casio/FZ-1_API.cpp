@@ -211,20 +211,41 @@ Result MemoryBlocks::parse() {
 
 //------------------------------------------------------------------------------
 
-MemoryObjectPtr MemoryObject::prev() {
-    if(prev_) {
-        return prev_->shared_from_this();
+std::shared_ptr<MemoryBank> MemoryBank::create(
+    const Bank &bank, MemoryObjectPtr prev) {
+    auto result = std::make_shared<MemoryBank>(Lock{}, bank, prev);
+    if(prev) {
+        prev->link(result);
     }
-    return nullptr;
+    return result;
 }
 
-MemoryObjectPtr MemoryObject::next() {
-    if(next_) {
-        return next_->shared_from_this();
+std::shared_ptr<MemoryEffect> MemoryEffect::create(
+    const Effect &effect, MemoryObjectPtr prev) {
+    auto result = std::make_shared<MemoryEffect>(Lock{}, effect, prev);
+    if(prev) {
+        prev->link(result);
     }
-    return nullptr;
+    return result;
 }
 
+std::shared_ptr<MemoryVoice> MemoryVoice::create(
+    const Voice &voice, MemoryObjectPtr prev) {
+    auto result = std::make_shared<MemoryVoice>(Lock{}, voice, prev);
+    if(prev) {
+        prev->link(result);
+    }
+    return result;
+}
+
+std::shared_ptr<MemoryWave> MemoryWave::create(
+    const Wave &wave, MemoryObjectPtr prev) {
+    auto result = std::make_shared<MemoryWave>(Lock{}, wave, prev);
+    if(prev) {
+        prev->link(result);
+    }
+    return result;
+}
 
 //------------------------------------------------------------------------------
 

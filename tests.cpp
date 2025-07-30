@@ -311,18 +311,39 @@ T_(test_load_voice, {
 
 
 T_(test_memory_object_list, {
+    Effect e;
     Bank b;
     Voice v;
-    auto p = API::MemoryBank::create(b);
-    CHECK(p);
-    CHECK(!p->prev());
-    CHECK(!p->next());
-    auto q = API::MemoryVoice::create(v, p.get());
-    CHECK(q);
-    CHECK(!p->prev());
-    CHECK(p->next());
-    CHECK(q->prev());
-    CHECK(!q->next());
+    Wave w;
+    auto me = API::MemoryEffect::create(e);
+    CHECK(me);
+    CHECK(!me->prev());
+    CHECK(!me->next());
+    auto mb = API::MemoryBank::create(b, me);
+    CHECK(mb);
+    CHECK(!me->prev());
+    CHECK(me->next() == mb);
+    CHECK(mb->prev() == me);
+    CHECK(!mb->next());
+    auto mv = API::MemoryVoice::create(v, mb);
+    CHECK(mv);
+    CHECK(!me->prev());
+    CHECK(me->next() == mb);
+    CHECK(mb->prev() == me);
+    CHECK(mb->next() == mv);
+    CHECK(mv->prev() == mb);
+    CHECK(!mv->next());
+    auto mw = API::MemoryWave::create(w, mv);
+    CHECK(mw);
+    CHECK(!me->prev());
+    CHECK(me->next() == mb);
+    CHECK(mb->prev() == me);
+    CHECK(mb->next() == mv);
+    CHECK(mv->prev() == mb);
+    CHECK(mv->next() == mw);
+    CHECK(mw->prev() == mv);
+    CHECK(!mw->next());
+
 });
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()

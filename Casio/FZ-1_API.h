@@ -100,22 +100,21 @@ using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
 // These can be unpacked from MemoryBlocks, manipulated and repacked (or data can
 // be saved in .xml or .wav file formats).
 struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
-    MemoryObject(MemoryObject *prev = nullptr): prev_(prev) {
-        if(prev_) {
-            prev_->next_ = this;
-        }
-    }
+    MemoryObject(MemoryObjectPtr prev = nullptr): prev_(prev) {}
 
-    MemoryObjectPtr prev();
-    MemoryObjectPtr next();
+    MemoryObjectPtr prev() { return prev_.lock(); }
+    MemoryObjectPtr next() { return next_; }
+
+    void link(const MemoryObjectPtr &next) {
+        next_ = next;
+    }
 
 protected:
     struct Lock {};
 
 private:
-    MemoryObject
-        *prev_ = nullptr,
-        *next_ = nullptr;
+    std::weak_ptr<MemoryObject> prev_;
+    MemoryObjectPtr next_;
 };
 
 
@@ -124,12 +123,9 @@ private:
 
 struct MemoryBank: MemoryObject {
     static std::shared_ptr<MemoryBank> create(
-        const Bank &bank, MemoryObject *prev = nullptr) {
-        return std::make_shared<MemoryBank>(Lock{}, bank, prev);
-    }
+        const Bank &bank, MemoryObjectPtr prev = nullptr);
 
-    MemoryBank(Lock, const Bank &bank): bank_(bank_) {}
-    MemoryBank(Lock, const Bank &bank, MemoryObject *prev):
+    MemoryBank(Lock, const Bank &bank, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), bank_(bank_) {}
 
 private:
@@ -142,12 +138,9 @@ private:
 
 struct MemoryEffect: MemoryObject {
     static std::shared_ptr<MemoryEffect> create(
-        const Effect &effect, MemoryObject *prev = nullptr) {
-        return std::make_shared<MemoryEffect>(Lock{}, effect, prev);
-    }
+        const Effect &effect, MemoryObjectPtr prev = nullptr);
 
-    MemoryEffect(Lock, const Effect &effect): effect_(effect) {}
-    MemoryEffect(Lock, const Effect &effect, MemoryObject *prev):
+    MemoryEffect(Lock, const Effect &effect, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), effect_(effect) {}
 
 private:
@@ -160,11 +153,9 @@ private:
 
 struct MemoryVoice: MemoryObject {
     static std::shared_ptr<MemoryVoice> create(
-        const Voice &voice, MemoryObject *prev = nullptr) {
-        return std::make_shared<MemoryVoice>(Lock{}, voice, prev);
-    }
-    MemoryVoice(Lock, const Voice &voice): voice_(voice) {}
-    MemoryVoice(Lock, const Voice &voice, MemoryObject *prev):
+        const Voice &voice, MemoryObjectPtr prev = nullptr);
+
+    MemoryVoice(Lock, const Voice &voice, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), voice_(voice) {}
 
 private:
@@ -177,11 +168,9 @@ private:
 
 struct MemoryWave: MemoryObject {
     static std::shared_ptr<MemoryWave> create(
-        const Wave &wave, MemoryObject *prev = nullptr) {
-        return std::make_shared<MemoryWave>(Lock{}, wave, prev);
-    }
-    MemoryWave(Lock, const Wave &wave): wave_(wave) {}
-    MemoryWave(Lock, const Wave &wave, MemoryObject *prev):
+        const Wave &wave, MemoryObjectPtr prev = nullptr);
+
+    MemoryWave(Lock, const Wave &wave, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), wave_(wave) {}
 
 private:
