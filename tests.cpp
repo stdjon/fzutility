@@ -310,6 +310,20 @@ T_(test_load_voice, {
 });
 
 
+T_(test_memory_object_list, {
+    Bank b;
+    Voice v;
+    auto p = API::MemoryBank::create(b);
+    CHECK(p);
+    CHECK(!p->prev());
+    CHECK(!p->next());
+    auto q = API::MemoryVoice::create(v, p.get());
+    CHECK(q);
+    CHECK(!p->prev());
+    CHECK(p->next());
+    CHECK(q->prev());
+    CHECK(!q->next());
+});
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
 

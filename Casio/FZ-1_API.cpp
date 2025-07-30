@@ -211,6 +211,23 @@ Result MemoryBlocks::parse() {
 
 //------------------------------------------------------------------------------
 
+MemoryObjectPtr MemoryObject::prev() {
+    if(prev_) {
+        return prev_->shared_from_this();
+    }
+    return nullptr;
+}
+
+MemoryObjectPtr MemoryObject::next() {
+    if(next_) {
+        return next_->shared_from_this();
+    }
+    return nullptr;
+}
+
+
+//------------------------------------------------------------------------------
+
 BlockLoader::BlockLoader(std::string_view filename) {
     FILE *file = fopen(filename.data(), "rb");
     if(!file) {
