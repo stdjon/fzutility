@@ -317,16 +317,19 @@ T_(test_memory_object_list, {
     Wave w;
     auto me = API::MemoryEffect::create(e);
     CHECK(me);
+    CHECK(me->type() == API::BT_EFFECT);
     CHECK(!me->prev());
     CHECK(!me->next());
     auto mb = API::MemoryBank::create(b, me);
     CHECK(mb);
+    CHECK(mb->type() == API::BT_BANK);
     CHECK(!me->prev());
     CHECK(me->next() == mb);
     CHECK(mb->prev() == me);
     CHECK(!mb->next());
     auto mv = API::MemoryVoice::create(v, mb);
     CHECK(mv);
+    CHECK(mv->type() == API::BT_VOICE);
     CHECK(!me->prev());
     CHECK(me->next() == mb);
     CHECK(mb->prev() == me);
@@ -335,6 +338,7 @@ T_(test_memory_object_list, {
     CHECK(!mv->next());
     auto mw = API::MemoryWave::create(w, mv);
     CHECK(mw);
+    CHECK(mw->type() == API::BT_WAVE);
     CHECK(!me->prev());
     CHECK(me->next() == mb);
     CHECK(mb->prev() == me);

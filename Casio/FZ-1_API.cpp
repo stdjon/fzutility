@@ -211,40 +211,35 @@ Result MemoryBlocks::parse() {
 
 //------------------------------------------------------------------------------
 
-std::shared_ptr<MemoryBank> MemoryBank::create(
-    const Bank &bank, MemoryObjectPtr prev) {
-    auto result = std::make_shared<MemoryBank>(Lock{}, bank, prev);
+template<typename T, typename U>
+auto MemoryObject::create(U &u, MemoryObjectPtr prev) {
+    auto result = std::make_shared<T>(Lock{}, u, prev);
     if(prev) {
+        // link() must be called *after* the result object is fully constructed
+        // (otherwise a std::bad_weak_ptr exception is thrown)
         prev->link(result);
     }
     return result;
+}
+
+std::shared_ptr<MemoryBank> MemoryBank::create(
+    const Bank &bank, MemoryObjectPtr prev) {
+    return MemoryObject::create<MemoryBank>(bank, prev);
 }
 
 std::shared_ptr<MemoryEffect> MemoryEffect::create(
     const Effect &effect, MemoryObjectPtr prev) {
-    auto result = std::make_shared<MemoryEffect>(Lock{}, effect, prev);
-    if(prev) {
-        prev->link(result);
-    }
-    return result;
+    return MemoryObject::create<MemoryEffect>(effect, prev);
 }
 
 std::shared_ptr<MemoryVoice> MemoryVoice::create(
     const Voice &voice, MemoryObjectPtr prev) {
-    auto result = std::make_shared<MemoryVoice>(Lock{}, voice, prev);
-    if(prev) {
-        prev->link(result);
-    }
-    return result;
+    return MemoryObject::create<MemoryVoice>(voice, prev);
 }
 
 std::shared_ptr<MemoryWave> MemoryWave::create(
     const Wave &wave, MemoryObjectPtr prev) {
-    auto result = std::make_shared<MemoryWave>(Lock{}, wave, prev);
-    if(prev) {
-        prev->link(result);
-    }
-    return result;
+    return MemoryObject::create<MemoryWave>(wave, prev);
 }
 
 //------------------------------------------------------------------------------

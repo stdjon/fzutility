@@ -93,6 +93,7 @@ private:
 
 
 //------------------------------------------------------------------------------
+// MemoryObject
 
 using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
 
@@ -100,7 +101,11 @@ using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
 // These can be unpacked from MemoryBlocks, manipulated and repacked (or data can
 // be saved in .xml or .wav file formats).
 struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
-    MemoryObject(MemoryObjectPtr prev = nullptr): prev_(prev) {}
+    template<typename T, typename U>
+    static auto create(U &u, MemoryObjectPtr prev);
+
+    virtual ~MemoryObject() = default;
+    virtual BlockType type() { return BT_NONE; }
 
     MemoryObjectPtr prev() { return prev_.lock(); }
     MemoryObjectPtr next() { return next_; }
@@ -109,8 +114,11 @@ struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
         next_ = next;
     }
 
+    Result pack(MemoryBlocks &mb);
+
 protected:
     struct Lock {};
+    MemoryObject(MemoryObjectPtr prev): prev_(prev) {}
 
 private:
     std::weak_ptr<MemoryObject> prev_;
@@ -128,6 +136,8 @@ struct MemoryBank: MemoryObject {
     MemoryBank(Lock, const Bank &bank, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), bank_(bank_) {}
 
+    BlockType type() override { return BT_BANK; }
+
 private:
     Bank bank_;
 };
@@ -142,6 +152,8 @@ struct MemoryEffect: MemoryObject {
 
     MemoryEffect(Lock, const Effect &effect, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), effect_(effect) {}
+
+    BlockType type() override { return BT_EFFECT; }
 
 private:
     Effect effect_;
@@ -158,6 +170,8 @@ struct MemoryVoice: MemoryObject {
     MemoryVoice(Lock, const Voice &voice, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), voice_(voice) {}
 
+    BlockType type() override { return BT_VOICE; }
+
 private:
     Voice voice_;
 };
@@ -172,6 +186,8 @@ struct MemoryWave: MemoryObject {
 
     MemoryWave(Lock, const Wave &wave, MemoryObjectPtr prev = nullptr):
         MemoryObject(prev), wave_(wave) {}
+
+    BlockType type() override { return BT_WAVE; }
 
 private:
     Wave wave_;
