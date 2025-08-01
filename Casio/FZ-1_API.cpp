@@ -233,7 +233,7 @@ Result MemoryBlocks::parse() {
     }
     if(bank_blocks) {
         if(bank_blocks > count_) {
-            return RESULT_BANK_BLOCK_MISMATCH;
+            return RESULT_MISMATCHED_BANK_BLOCK;
         }
         for(size_t i = 0; i < bank_blocks; i++) {
             block_types_[iterator++] = BT_BANK;
@@ -242,7 +242,7 @@ Result MemoryBlocks::parse() {
     if(voice_blocks) {
         size_t voice_count = (voice_blocks + 3) / 4;
         if((voice_count + iterator) > count_) {
-            return RESULT_VOICE_BLOCK_MISMATCH;
+            return RESULT_MISMATCHED_VOICE_BLOCK;
         }
         for(size_t i = 0; i < voice_count; i++) {
             block_types_[iterator++] = BT_VOICE;
@@ -250,14 +250,14 @@ Result MemoryBlocks::parse() {
     }
     if(wave_blocks) {
         if(wave_blocks + iterator > count_) {
-            return RESULT_WAVE_BLOCK_MISMATCH;
+            return RESULT_MISMATCHED_WAVE_BLOCK;
         }
         for(size_t i = 0; i < wave_blocks; i++) {
             block_types_[iterator++] = BT_WAVE;
         }
     }
     if(iterator != count_) {
-        return RESULT_BLOCK_COUNT_MISMATCH;
+        return RESULT_MISMATCHED_BLOCK_COUNT;
     }
     return RESULT_OK;
 }
@@ -381,7 +381,7 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
         o = o->next();
     }
     if(i != n) {
-        return RESULT_BLOCK_COUNT_MISMATCH;
+        return RESULT_MISMATCHED_BLOCK_COUNT;
     }
     return out.load(std::move(storage), n);
 }
