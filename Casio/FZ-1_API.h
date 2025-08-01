@@ -22,6 +22,7 @@ enum Result {
     RESULT_BAD_FILE_VERSION,
     RESULT_BAD_HEADER,
     RESULT_FILE_OPEN_ERROR,
+    RESULT_FILE_READ_ERROR,
     RESULT_FILE_WRITE_ERROR,
     RESULT_MEMORY_TOO_SMALL,
     RESULT_MISMATCHED_BANK_BLOCK,
@@ -239,13 +240,19 @@ struct BlockLoader {
     Result load(MemoryBlocks &blocks);
 
 private:
+    enum Flags {
+        FILE_OPEN_ERROR = 0x01,
+        FILE_READ_ERROR = 0x02,
+    };
+
     std::unique_ptr<uint8_t[]> storage_;
     size_t size_ = 0;
-    bool file_open_error_ = false;
+    uint8_t flags_ = 0;
 };
 
 template<size_t N>BlockLoader::BlockLoader(uint8_t (&storage)[N]):
     BlockLoader(storage, N) {}
+
 
 //------------------------------------------------------------------------------
 // BlockDumper
@@ -269,6 +276,7 @@ private:
 
 template<size_t N>BlockDumper::BlockDumper(uint8_t (&storage)[N]):
     BlockDumper(storage, N) {}
+
 
 } //Casio::FZ_1::API
 

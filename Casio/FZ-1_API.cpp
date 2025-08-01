@@ -452,7 +452,7 @@ bool MemoryWave::pack(Block *block, size_t index) {
 BlockLoader::BlockLoader(std::string_view filename) {
     FILE *file = fopen(filename.data(), "rb");
     if(!file) {
-        file_open_error_ = true;
+        flags_ |= FILE_OPEN_ERROR;
         return;
     }
     FileCloser close_file(file);
@@ -467,6 +467,7 @@ BlockLoader::BlockLoader(std::string_view filename) {
             return;
         }
     }
+    flags_ |= FILE_READ_ERROR;
     storage_ = nullptr;
     size_ = 0;
 }
@@ -483,8 +484,11 @@ BlockLoader::BlockLoader(void *storage, size_t size):
 
 Result BlockLoader::load(MemoryBlocks &mb) {
     mb.reset();
-    if(file_open_error_) {
+    if(flags_ & FILE_OPEN_ERROR) {
         return RESULT_FILE_OPEN_ERROR;
+    }
+    if(flags_ & FILE_READ_ERROR) {
+        return RESULT_FILE_READ_ERROR;
     }
     if(!size_) {
         return RESULT_NO_BLOCKS;
@@ -520,6 +524,9 @@ Result BlockDumper::dump(const MemoryBlocks &blocks, size_t *write_size) {
 
 Result BlockDumper::memory_dump(const MemoryBlocks &blocks, size_t *write_size) {
     assert(destination_);
+    if(write_size) {
+        *write_size = 0;
+    }
     size_t copy_size = blocks.count() * 1024;
     if(size_ < copy_size) {
         return RESULT_MEMORY_TOO_SMALL;
@@ -533,6 +540,9 @@ Result BlockDumper::memory_dump(const MemoryBlocks &blocks, size_t *write_size) 
 
 Result BlockDumper::file_dump(const MemoryBlocks &blocks, size_t *write_size) {
     assert(!filename_.empty());
+    if(write_size) {
+        *write_size = 0;
+    }
     FILE *file = fopen(filename_.data(), "wb");
     if(!file) {
         return RESULT_FILE_OPEN_ERROR;
