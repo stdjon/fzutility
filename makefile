@@ -1,4 +1,6 @@
 headers:=Casio/FZ-1.h Casio/FZ-1_API.h
+3headers:=3/tinyxml2/tinyxml2.h 3/tinywav/tinywav.h
+3files=3/tinyxml2/tinyxml2.cpp 3/tinywav/tinywav.c
 
 target:=fzutility.exe
 cppfiles:=main.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
@@ -15,10 +17,10 @@ clean:
 test: all
 	./$(test_target)
 
-$(target): $(cppfiles) $(headers)
-	g++ -std=c++17 -I . $(filter %.cpp,$^) -o $@
+$(target): $(cppfiles) $(3files) $(headers) $(3headers)
+	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
-$(test_target): $(test_cppfiles) $(headers)
-	g++ -std=c++17 -I . $(filter %.cpp,$^) -o $@
+$(test_target): $(test_cppfiles) $(3files) $(headers) $(3headers)
+	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
 
