@@ -394,6 +394,97 @@ T_(test_unpack_full, {
     CHECK(n->type() == API::BT_WAVE);
 });
 
+T_(test_empty_pack_error, {
+    API::MemoryObjectPtr mo;
+    API::MemoryBlocks mb;
+    auto r = API::MemoryObject::pack(mo, mb);
+    CHECK(r == API::RESULT_NO_BLOCKS);
+    CHECK(!mb.count());
+});
+
+T_(test_pack_basic, {
+    Voice v1;
+    auto mv1 = API::MemoryVoice::create(v1);
+    CHECK(mv1);
+    Wave w1;
+    auto mw1 = API::MemoryWave::create(w1, mv1);
+    CHECK(mw1);
+    API::MemoryBlocks mb;
+    auto r1 = API::MemoryObject::pack(mv1, mb, TYPE_FULL);
+    CHECK(r1 == API::RESULT_OK);
+
+    Effect e2;
+    auto me2 = API::MemoryEffect::create(e2);
+    CHECK(me2);
+    Voice v2;
+    auto mv2 = API::MemoryVoice::create(v2, me2);
+    CHECK(mv2);
+    Wave w2;
+    auto mw2 = API::MemoryWave::create(w2, mv2);
+    CHECK(mw2);
+    auto r2 = API::MemoryObject::pack(me2, mb, TYPE_FULL);
+    CHECK(r2 == API::RESULT_OK);
+});
+
+T_(test_memory_object_insert, {
+    Effect e;
+    auto me = API::MemoryEffect::create(e);
+    CHECK(me);
+    CHECK(!me->prev());
+    CHECK(!me->next());
+
+    Bank b;
+    auto mb1 = API::MemoryBank::create(b);
+    CHECK(mb1);
+    CHECK(!mb1->prev());
+    CHECK(!mb1->next());
+    auto mb2 = API::MemoryBank::create(b);
+    CHECK(mb2);
+    CHECK(!mb2->prev());
+    CHECK(!mb2->next());
+
+    Voice v;
+    auto mv = API::MemoryVoice::create(v);
+    CHECK(mv);
+    CHECK(!mv->prev());
+    CHECK(!mv->next());
+
+    Wave w;
+    auto mw1 = API::MemoryWave::create(w);
+    CHECK(mw1);
+    CHECK(!mw1->prev());
+    CHECK(!mw1->next());
+    auto mw2 = API::MemoryWave::create(w);
+    CHECK(mw2);
+    CHECK(!mw2->prev());
+    CHECK(!mw2->next());
+
+    auto p = me->insert_after(mb1);
+    CHECK(p);
+    CHECK(p == mb1);
+    CHECK(!p->prev());
+    CHECK(p->next() == me);
+
+    auto q = mv->insert_before(mw1);
+    CHECK(q);
+    CHECK(q == mv);
+    CHECK(!q->prev());
+    CHECK(q->next() == mw1);
+
+    auto r = mw2->insert_before(p);
+    CHECK(r);
+    CHECK(r == mw2);
+    CHECK(!r->prev());
+    CHECK(r->next() == p);
+
+    auto s = mb2->insert_after(q);
+    CHECK(s);
+    CHECK(s == q);
+    CHECK(!s->prev());
+    CHECK(s->next() == mb2);
+});
+
+
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
 

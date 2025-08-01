@@ -14,10 +14,13 @@ using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
 enum Result {
     RESULT_OK,
 
+    RESULT_BAD_BLOCK,
     RESULT_BAD_BLOCK_COUNT,
-    RESULT_BAD_HEADER,
+    RESULT_BAD_BLOCK_INDEX,
+    RESULT_BAD_EFFECT_BLOCK_COUNT,
     RESULT_BAD_FILE_SIZE,
     RESULT_BAD_FILE_VERSION,
+    RESULT_BAD_HEADER,
     RESULT_MISSING_BANK,
     RESULT_MISSING_VOICE,
     RESULT_MISSING_WAVE,
@@ -97,6 +100,7 @@ private:
 
     friend struct BlockLoader;
     friend struct BlockDumper;
+    friend struct MemoryObject;
 };
 
 
@@ -116,17 +120,22 @@ struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
     MemoryObjectPtr prev() { return prev_.lock(); }
     MemoryObjectPtr next() { return next_; }
 
-    void link(const MemoryObjectPtr &next) {
-        next_ = next;
-    }
+    MemoryObjectPtr insert_after(MemoryObjectPtr obj);
+    MemoryObjectPtr insert_before(MemoryObjectPtr obj);
 
-    Result pack(MemoryBlocks &mb);
+    static Result pack(
+        MemoryObjectPtr in, MemoryBlocks &out, FzFileType type = TYPE_FULL);
 
 protected:
     struct Lock {};
     MemoryObject(MemoryObjectPtr prev): prev_(prev) {}
+    virtual bool pack(Block *block, size_t index) { return false; }
 
 private:
+    void link(const MemoryObjectPtr &next) {
+        next_ = next;
+    }
+
     std::weak_ptr<MemoryObject> prev_;
     MemoryObjectPtr next_;
 };
@@ -143,6 +152,9 @@ struct MemoryBank: MemoryObject {
         MemoryObject(prev), bank_(bank_) {}
 
     BlockType type() override { return BT_BANK; }
+
+protected:
+    bool pack(Block *block, size_t index) override;
 
 private:
     Bank bank_;
@@ -161,6 +173,9 @@ struct MemoryEffect: MemoryObject {
 
     BlockType type() override { return BT_EFFECT; }
 
+protected:
+    bool pack(Block *block, size_t index) override;
+
 private:
     Effect effect_;
 };
@@ -178,6 +193,9 @@ struct MemoryVoice: MemoryObject {
 
     BlockType type() override { return BT_VOICE; }
 
+protected:
+    bool pack(Block *block, size_t index) override;
+
 private:
     Voice voice_;
 };
@@ -194,6 +212,9 @@ struct MemoryWave: MemoryObject {
         MemoryObject(prev), wave_(wave) {}
 
     BlockType type() override { return BT_WAVE; }
+
+protected:
+    bool pack(Block *block, size_t index) override;
 
 private:
     Wave wave_;
