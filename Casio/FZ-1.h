@@ -6,7 +6,6 @@
 //  - "CASIO DIGITAL SAMPLING KEYBOARD MODEL FZ-1 DATA STRUCTURES" by T. Sasaki
 
 #include <stdint.h>
-#include <array>
 
 namespace Casio::FZ_1 {
 
@@ -183,7 +182,7 @@ struct VoiceBlockFileHeader: Block {
     VoicePad_ v2;
     VoicePad_ v3;
     Voice v4;
-    uint8_t pad1_[40];
+    uint8_t pad1_[40] = { 0 };
     FzFileHeader header;
     uint8_t pad2_[24 - sizeof(FzFileHeader)] = { 0 };
 
@@ -246,7 +245,7 @@ static_assert(sizeof(EffectBlock) == 1024,
    "Casio FZ-1 EffectBlock struct should be 1024 bytes");
 
 struct EffectBlockFileHeader: Block, EffectPad_ {
-    uint8_t pad_1[16];
+    uint8_t pad1_[16] = { 0 };
     FzFileHeader header;
     uint8_t pad2_[24 - sizeof(FzFileHeader)] = { 0 };
 };
@@ -270,7 +269,7 @@ static_assert(sizeof(WaveBlock) == 1024,
 
 // used internally: represents an as-yet unparsed block
 struct UnknownBlock: Block {
-    uint8_t pad_[1000];
+    uint8_t pad_[1000] = { 0 };
     FzFileHeader header;
     uint8_t pad2_[24 - sizeof(FzFileHeader)] = { 0 };
 };
