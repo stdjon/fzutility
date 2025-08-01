@@ -318,12 +318,14 @@ T_(test_load_dump_load, {
     CHECK(mb1);
     CHECK(mb1.file_type() == TYPE_VOICE);
     CHECK(mb1.count() == 5);
+
     uint8_t memory[5 * 1024];
     size_t bytes = 0;
-    auto bd = API::BlockDumper(memory);
-    auto r2 = bd.dump(mb1, &bytes);
+    auto bd1 = API::BlockDumper(memory);
+    auto r2 = bd1.dump(mb1, &bytes);
     CHECK(r2 == API::RESULT_OK);
     CHECK(bytes = 5 * 1024);
+
     auto bl2 = API::BlockLoader(memory);
     API::MemoryBlocks mb2;
     auto r3 = bl2.load(mb2);
@@ -332,6 +334,21 @@ T_(test_load_dump_load, {
     CHECK(mb2);
     CHECK(mb2.file_type() == TYPE_VOICE);
     CHECK(mb2.count() == 5);
+
+    auto bd2 = API::BlockDumper("fz_data/tmp");
+    auto r4 = bd2.dump(mb1, &bytes);
+    CHECK(r4 == API::RESULT_OK);
+    CHECK(bytes = 5 * 1024);
+
+    auto bl3 = API::BlockLoader("fz_data/tmp");
+    remove("fz_data/tmp");
+    API::MemoryBlocks mb3;
+    auto r5 = bl3.load(mb3);
+    CHECK(r5 == API::RESULT_OK);
+    CHECK(!mb3.is_empty());
+    CHECK(mb3);
+    CHECK(mb3.file_type() == TYPE_VOICE);
+    CHECK(mb3.count() == 5);
 });
 
 T_(test_memory_object_list, {
