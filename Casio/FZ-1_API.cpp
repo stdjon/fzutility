@@ -6,6 +6,12 @@
 
 namespace Casio::FZ_1::API {
 
+struct FileCloser {
+    FileCloser(FILE *f): f_(f) {}
+    ~FileCloser() { fclose(f_); }
+    FILE *f_;
+};
+
 static FzFileHeader &header_(void *b){
     assert(b);
     return static_cast<UnknownBlock*>(b)->header;
@@ -446,14 +452,10 @@ bool MemoryWave::pack(Block *block, size_t index) {
 BlockLoader::BlockLoader(std::string_view filename) {
     FILE *file = fopen(filename.data(), "rb");
     if(!file) {
+        file_open_error_ = true;
         return;
     }
-
-    struct FileCloser {
-        FileCloser(FILE *f): f_(f) {}
-        ~FileCloser() { fclose(f_); }
-        FILE *f_;
-    } close_file(file);
+    FileCloser close_file(file);
 
     fseek(file, 0, SEEK_END);
     size_ = ftell(file);
@@ -481,6 +483,9 @@ BlockLoader::BlockLoader(void *storage, size_t size):
 
 Result BlockLoader::load(MemoryBlocks &mb) {
     mb.reset();
+    if(file_open_error_) {
+        return RESULT_FILE_OPEN_ERROR;
+    }
     if(!size_) {
         return RESULT_NO_BLOCKS;
     }
@@ -499,6 +504,52 @@ Result BlockLoader::load(MemoryBlocks &mb) {
         return RESULT_BAD_BLOCK_COUNT;
     }
     return mb.load(std::move(storage_), blocks);
+}
+
+
+//------------------------------------------------------------------------------
+
+Result BlockDumper::dump(const MemoryBlocks &blocks, size_t *write_size) {
+    if(destination_) {
+        return memory_dump(blocks, write_size);
+    } else if(!filename_.empty()) {
+        return file_dump(blocks, write_size);
+    }
+    return RESULT_UNINITIALIZED_DUMPER;
+}
+
+Result BlockDumper::memory_dump(const MemoryBlocks &blocks, size_t *write_size) {
+    assert(destination_);
+    size_t copy_size = blocks.count() * 1024;
+    if(size_ < copy_size) {
+        return RESULT_MEMORY_TOO_SMALL;
+    }
+    memcpy(destination_, blocks.block(0), copy_size);
+    if(write_size) {
+        *write_size = copy_size;
+    }
+    return RESULT_OK;
+}
+
+Result BlockDumper::file_dump(const MemoryBlocks &blocks, size_t *write_size) {
+    assert(!filename_.empty());
+    FILE *file = fopen(filename_.data(), "wb");
+    if(!file) {
+        return RESULT_FILE_OPEN_ERROR;
+    }
+    FileCloser close_file(file);
+
+    size_t
+        copy_size = blocks.count() * 1024,
+        w = fwrite(blocks.block(0), copy_size, 1, file);
+
+    if(w != 1) {
+        return RESULT_FILE_WRITE_ERROR;
+    }
+    if(write_size) {
+        *write_size = copy_size;
+    }
+    return RESULT_OK;
 }
 
 

@@ -21,6 +21,9 @@ enum Result {
     RESULT_BAD_FILE_SIZE,
     RESULT_BAD_FILE_VERSION,
     RESULT_BAD_HEADER,
+    RESULT_FILE_OPEN_ERROR,
+    RESULT_FILE_WRITE_ERROR,
+    RESULT_MEMORY_TOO_SMALL,
     RESULT_MISSING_BANK,
     RESULT_MISSING_VOICE,
     RESULT_MISSING_WAVE,
@@ -29,6 +32,7 @@ enum Result {
     RESULT_VOICE_BLOCK_MISMATCH,
     RESULT_WAVE_BLOCK_MISMATCH,
     RESULT_BLOCK_COUNT_MISMATCH,
+    RESULT_UNINITIALIZED_DUMPER,
 };
 
 
@@ -47,7 +51,9 @@ enum BlockType: uint8_t {
 //------------------------------------------------------------------------------
 // MemoryBlocks
 
-// Models a contiguous array of Blocks plus some sanity-checking logic
+// Models a contiguous array of Blocks plus some sanity-checking logic.
+// Any pointers returned from methods will remain valid until the MemoryBlocks
+// object is destroyed.
 struct MemoryBlocks {
     // Low-level access to a specific block by index into the block array.
     // For specific block types, if the block at the given index does not match
@@ -228,23 +234,41 @@ struct BlockLoader {
     BlockLoader(std::string_view filename);
     BlockLoader(std::unique_ptr<uint8_t[]>&& storage, size_t size);
     BlockLoader(void *storage, size_t size);
-    template<size_t N>BlockLoader(uint8_t storage[N]);
-    Result load(MemoryBlocks &blocksOut);
+    template<size_t N>BlockLoader(uint8_t (&storage)[N]);
+
+    Result load(MemoryBlocks &blocks);
+
 private:
     std::unique_ptr<uint8_t[]> storage_;
     size_t size_ = 0;
+    bool file_open_error_ = false;
 };
 
-template<size_t N>BlockLoader::BlockLoader(uint8_t storage[N]):
+template<size_t N>BlockLoader::BlockLoader(uint8_t (&storage)[N]):
     BlockLoader(storage, N) {}
 
 //------------------------------------------------------------------------------
 // BlockDumper
 
 struct BlockDumper {
-    BlockDumper(std::string_view filename);
-    Result add_block(Block *block);
+    BlockDumper(std::string_view filename): filename_(filename) {}
+    BlockDumper(void *storage, size_t size):
+        destination_(storage), size_(size) {}
+    template<size_t N>BlockDumper(uint8_t (&storage)[N]);
+
+    Result dump(const MemoryBlocks &blocks, size_t *write_size = nullptr);
+
+private:
+    Result memory_dump(const MemoryBlocks &blocks, size_t *write_size);
+    Result file_dump(const MemoryBlocks &blocks, size_t *write_size);
+
+    std::string filename_;
+    void *destination_ = nullptr;
+    size_t size_ = 0;
 };
+
+template<size_t N>BlockDumper::BlockDumper(uint8_t (&storage)[N]):
+    BlockDumper(storage, N) {}
 
 } //Casio::FZ_1::API
 

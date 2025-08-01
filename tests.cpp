@@ -309,6 +309,30 @@ T_(test_load_voice, {
     check_voice(*mb.voice(0));
 });
 
+T_(test_load_dump_load, {
+    auto bl1 = API::BlockLoader("fz_data/voice.fzv");
+    API::MemoryBlocks mb1;
+    auto r1 = bl1.load(mb1);
+    CHECK(r1 == API::RESULT_OK);
+    CHECK(!mb1.is_empty());
+    CHECK(mb1);
+    CHECK(mb1.file_type() == TYPE_VOICE);
+    CHECK(mb1.count() == 5);
+    uint8_t memory[5 * 1024];
+    size_t bytes = 0;
+    auto bd = API::BlockDumper(memory);
+    auto r2 = bd.dump(mb1, &bytes);
+    CHECK(r2 == API::RESULT_OK);
+    CHECK(bytes = 5 * 1024);
+    auto bl2 = API::BlockLoader(memory);
+    API::MemoryBlocks mb2;
+    auto r3 = bl2.load(mb2);
+    CHECK(r3 == API::RESULT_OK);
+    CHECK(!mb2.is_empty());
+    CHECK(mb2);
+    CHECK(mb2.file_type() == TYPE_VOICE);
+    CHECK(mb2.count() == 5);
+});
 
 T_(test_memory_object_list, {
     Effect e;
