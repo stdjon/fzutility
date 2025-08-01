@@ -312,14 +312,12 @@ T_(test_load_voice, {
 
 T_(test_memory_object_list, {
     Effect e;
-    Bank b;
-    Voice v;
-    Wave w;
     auto me = API::MemoryEffect::create(e);
     CHECK(me);
     CHECK(me->type() == API::BT_EFFECT);
     CHECK(!me->prev());
     CHECK(!me->next());
+    Bank b;
     auto mb = API::MemoryBank::create(b, me);
     CHECK(mb);
     CHECK(mb->type() == API::BT_BANK);
@@ -327,6 +325,7 @@ T_(test_memory_object_list, {
     CHECK(me->next() == mb);
     CHECK(mb->prev() == me);
     CHECK(!mb->next());
+    Voice v;
     auto mv = API::MemoryVoice::create(v, mb);
     CHECK(mv);
     CHECK(mv->type() == API::BT_VOICE);
@@ -336,6 +335,7 @@ T_(test_memory_object_list, {
     CHECK(mb->next() == mv);
     CHECK(mv->prev() == mb);
     CHECK(!mv->next());
+    Wave w;
     auto mw = API::MemoryWave::create(w, mv);
     CHECK(mw);
     CHECK(mw->type() == API::BT_WAVE);
@@ -349,6 +349,51 @@ T_(test_memory_object_list, {
     CHECK(!mw->next());
 
 });
+
+T_(test_unpack_full, {
+    auto bl = API::BlockLoader("fz_data/full.fzf");
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_OK);
+    API::MemoryObjectPtr mo;
+    CHECK(!mo);
+    auto r2 = mb.unpack(mo);
+    CHECK(r2 == API::RESULT_OK);
+    CHECK(mo);
+    // mo 'anchors' the start of the list, so if we did mo = mo->next() we'd
+    // start to drop objects (i.e. !mo->prev() would always hold)
+    auto n = mo;
+    CHECK(n);
+    CHECK(!n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_EFFECT);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_VOICE);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(!n->next());
+    CHECK(n->type() == API::BT_WAVE);
+});
+
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
 

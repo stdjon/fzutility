@@ -6,6 +6,8 @@
 
 namespace Casio::FZ_1::API {
 
+using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
+
 //------------------------------------------------------------------------------
 // Result codes
 
@@ -16,6 +18,9 @@ enum Result {
     RESULT_BAD_HEADER,
     RESULT_BAD_FILE_SIZE,
     RESULT_BAD_FILE_VERSION,
+    RESULT_MISSING_BANK,
+    RESULT_MISSING_VOICE,
+    RESULT_MISSING_WAVE,
     RESULT_NO_BLOCKS,
     RESULT_BANK_BLOCK_MISMATCH,
     RESULT_VOICE_BLOCK_MISMATCH,
@@ -76,6 +81,9 @@ struct MemoryBlocks {
 
     void reset();
 
+    // unpack block array into a list of MemoryObjects
+    Result unpack(MemoryObjectPtr& mo);
+
 private:
     void *block_data(size_t n) const;
     Result load(std::unique_ptr<uint8_t[]> &&storage, size_t count);
@@ -94,8 +102,6 @@ private:
 
 //------------------------------------------------------------------------------
 // MemoryObject
-
-using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
 
 // Models independent Banks, Voices and Waves outside of a Block file array.
 // These can be unpacked from MemoryBlocks, manipulated and repacked (or data can

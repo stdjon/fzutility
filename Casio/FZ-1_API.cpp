@@ -145,6 +145,54 @@ void MemoryBlocks::reset() {
     file_type_ = TYPE_UNKNOWN;
 }
 
+Result MemoryBlocks::unpack(MemoryObjectPtr& object) {
+    object = nullptr;
+    auto *h = header();
+    if(!h) {
+        return RESULT_NO_BLOCKS;
+    }
+    MemoryObjectPtr
+        current,
+        first;
+    // Effects are always stored in the first block of any valid input data
+    if((file_type_ == TYPE_FULL) || (file_type_ == TYPE_EFFECT)) {
+        Effect *e = effect_header();
+        assert(e);
+        current = MemoryEffect::create(*e, current);
+        if(!first) { first = current; }
+    }
+    size_t
+        bank_count = h->bank_count,
+        voice_count = h->voice_count,
+        wave_count = h->wave_block_count;
+    for(size_t i = 0; i < bank_count; i++) {
+        if(Bank *b = bank(i)) {
+            current = MemoryBank::create(*b, current);
+            if(!first) { first = current; }
+        } else {
+            return RESULT_MISSING_BANK;
+        }
+    }
+    for(size_t i = 0; i < voice_count; i++) {
+        if(Voice *v = voice(i)) {
+            current = MemoryVoice::create(*v, current);
+            if(!first) { first = current; }
+        } else {
+            return RESULT_MISSING_VOICE;
+        }
+    }
+    for(size_t i = 0; i < wave_count; i++) {
+        if(Wave *w = wave(i)) {
+            current = MemoryWave::create(*w, current);
+            if(!first) { first = current; }
+        } else {
+            return RESULT_MISSING_WAVE;
+        }
+    }
+    object = first;
+    return RESULT_OK;
+}
+
 void *MemoryBlocks::block_data(size_t n) const {
     return (n < count_) ? &static_cast<UnknownBlock*>(data_)[n] : nullptr;
 }
@@ -249,13 +297,19 @@ BlockLoader::BlockLoader(std::string_view filename) {
     if(!file) {
         return;
     }
+
+    struct FileCloser {
+        FileCloser(FILE *f): f_(f) {}
+        ~FileCloser() { fclose(f_); }
+        FILE *f_;
+    } close_file(file);
+
     fseek(file, 0, SEEK_END);
     size_ = ftell(file);
     if(size_) {
         rewind(file);
         storage_ = std::make_unique<uint8_t[]>(size_);
         size_t r = fread(storage_.get(), size_, 1, file);
-        fclose(file);
         if(r == 1) {
             return;
         }
