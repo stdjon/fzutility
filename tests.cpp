@@ -113,41 +113,11 @@ T_(test_load_bank, {
 
     BankBlock *bank_block = mb.bank_block(0);
     CHECK(bank_block);
-    CHECK(bank_block->voice_count == 1);
-    CHECK(bank_block->midi_hi[0] == 96);
-    CHECK(bank_block->midi_lo[0] == 36);
-    CHECK(bank_block->velocity_hi[0] == 127);
-    CHECK(bank_block->velocity_lo[0] == 1);
-    CHECK(bank_block->midi_origin[0] == 72);
-    CHECK(bank_block->midi_channel[0] == 0);
-    CHECK(bank_block->gchn[0] == 255);
-    CHECK(bank_block->area_volume[0] == 0);
-    CHECK(bank_block->vp[0] == 0);
-    CHECK(bank_block->name[12] == 0);
-    CHECK(bank_block->name[13] == 0);
-    CHECK(std::string{ bank_block->name } == "BBBBBBBBBBBB");
+    check_bank(*bank_block);
 
     BankBlockFileHeader *bank_header = mb.bank_header();
     CHECK(bank_header);
-    CHECK(bank_header->header.indicator == FzFileHeader::INDICATOR);
-    CHECK(bank_header->header.version == 1);
-    CHECK(bank_header->header.file_type == 2);
-    CHECK(bank_header->header.bank_count == 1);
-    CHECK(bank_header->header.voice_count == 1);
-    CHECK(bank_header->header.block_count == 6);
-    CHECK(bank_header->header.wave_block_count == 4);
-    CHECK(bank_header->midi_hi[0] == 96);
-    CHECK(bank_header->midi_lo[0] == 36);
-    CHECK(bank_header->velocity_hi[0] == 127);
-    CHECK(bank_header->velocity_lo[0] == 1);
-    CHECK(bank_header->midi_origin[0] == 72);
-    CHECK(bank_header->midi_channel[0] == 0);
-    CHECK(bank_header->gchn[0] == 255);
-    CHECK(bank_header->area_volume[0] == 0);
-    CHECK(bank_header->vp[0] == 0);
-    CHECK(bank_header->name[12] == 0);
-    CHECK(bank_header->name[13] == 0);
-    CHECK(std::string{ bank_header->name } == "BBBBBBBBBBBB");
+    check_bank(*bank_header);
 });
 
 T_(test_load_effect, {
@@ -525,8 +495,37 @@ T_(test_memory_object_insert, {
     CHECK(s->next() == mb2);
 });
 
+T_(test_xml_roundtrip_bank, {
+    auto bl = API::BlockLoader("fz_data/bank.fzb");
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(mb.bank(0));
+    check_bank(*mb.bank(0));
+    CHECK(r == API::RESULT_OK);
+    API::MemoryObjectPtr mo;
+    CHECK(!mo);
+    auto r2 = mb.unpack(mo);
+    CHECK(r2 == API::RESULT_OK);
+    CHECK(mo);
+    CHECK(mo->type() == API::BT_BANK);
+    CHECK(mo->bank());
+    check_bank(*mo->bank());
+    auto xd = API::XmlDumper("fz_data/bank.fzml");
+    auto r3 = xd.dump(mo);
+    CHECK(r3 == API::RESULT_OK);
+    API::MemoryObjectPtr mo2;
+    CHECK(!mo2);
+    auto xl = API::XmlLoader("fz_data/bank.fzml");
+    auto r4 = xl.load(mo2);
+    CHECK(r4 == API::RESULT_OK);
+    remove("fz_data/bank.fzml");
+    CHECK(mo2);
+    CHECK(mo2->type() == API::BT_BANK);
+    CHECK(mo2->bank());
+    check_bank(*mo2->bank());
+});
 
-T_(test_xml_roundtrip, {
+T_(test_xml_roundtrip_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -558,6 +557,22 @@ T_(test_xml_roundtrip, {
 
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
+
+    void check_bank(Bank &bank) {
+        CHECK(bank.voice_count == 1);
+        CHECK(bank.midi_hi[0] == 96);
+        CHECK(bank.midi_lo[0] == 36);
+        CHECK(bank.velocity_hi[0] == 127);
+        CHECK(bank.velocity_lo[0] == 1);
+        CHECK(bank.midi_origin[0] == 72);
+        CHECK(bank.midi_channel[0] == 0);
+        CHECK(bank.gchn[0] == 255);
+        CHECK(bank.area_volume[0] == 0);
+        CHECK(bank.vp[0] == 0);
+        CHECK(bank.name[12] == 0);
+        CHECK(bank.name[13] == 0);
+        CHECK(std::string{ bank.name } == "BBBBBBBBBBBB");
+    }
 
     void check_voice(Voice &voice) {
         CHECK(voice.data_start == 0);

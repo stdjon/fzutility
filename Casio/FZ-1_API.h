@@ -145,7 +145,7 @@ struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
     MemoryObjectPtr insert_after(MemoryObjectPtr obj);
     MemoryObjectPtr insert_before(MemoryObjectPtr obj);
 
-    // Only one of these will return non-null for any give object
+    // Only one of these will return non-null for any given object
     virtual Bank *bank() { return nullptr; }
     virtual Effect *effect() { return nullptr; }
     virtual Voice *voice() { return nullptr; }
@@ -183,7 +183,7 @@ struct MemoryBank: MemoryObject {
         const U &u, MemoryObjectPtr prev = nullptr);
 
     MemoryBank(Lock, const Bank &bank, MemoryObjectPtr prev):
-        MemoryObject(prev), bank_(bank_) {}
+        MemoryObject(prev), bank_(bank) {}
     MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_BANK; }
