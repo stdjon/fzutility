@@ -4,9 +4,18 @@
 #include "Casio/FZ-1.h"
 #include <memory>
 
+namespace tinyxml2 {
+class XMLDocument;
+class XMLElement;
+class XMLPrinter;
+}
+
 namespace Casio::FZ_1::API {
 
 using MemoryObjectPtr = std::shared_ptr<struct MemoryObject>;
+using XmlDocument = tinyxml2::XMLDocument;
+using XmlElement = tinyxml2::XMLElement;
+using XmlPrinter = tinyxml2::XMLPrinter;
 
 //------------------------------------------------------------------------------
 // Result codes
@@ -34,6 +43,12 @@ enum Result {
     RESULT_MISSING_WAVE,
     RESULT_NO_BLOCKS,
     RESULT_UNINITIALIZED_DUMPER,
+    RESULT_XML_EMPTY,
+    RESULT_XML_MISSING_CHILDREN,
+    RESULT_XML_MISSING_ROOT,
+    RESULT_XML_PARSE_ERROR,
+    RESULT_XML_UNKNOWN_ELEMENT,
+    RESULT_XML_UNKNOWN_ROOT_ELEMENT,
 };
 
 
@@ -119,7 +134,7 @@ private:
 // be saved in .xml or .wav file formats).
 struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
     template<typename T, typename U>
-    static auto create(U &u, MemoryObjectPtr prev);
+    static auto create(const U &u, MemoryObjectPtr prev);
 
     virtual ~MemoryObject() = default;
     virtual BlockType type() { return BT_NONE; }
@@ -137,6 +152,8 @@ protected:
     struct Lock {};
     MemoryObject(MemoryObjectPtr prev): prev_(prev) {}
     virtual bool pack(Block *block, size_t index) { return false; }
+    virtual void print(XmlPrinter &printer) {}
+
 
 private:
     void link(const MemoryObjectPtr &next) {
@@ -145,6 +162,9 @@ private:
 
     std::weak_ptr<MemoryObject> prev_;
     MemoryObjectPtr next_;
+
+    friend class XmlDumper;
+    friend class XmlLoader;
 };
 
 
@@ -152,16 +172,19 @@ private:
 // MemoryBank
 
 struct MemoryBank: MemoryObject {
+    template<typename U>
     static std::shared_ptr<MemoryBank> create(
-        const Bank &bank, MemoryObjectPtr prev = nullptr);
+        const U &u, MemoryObjectPtr prev = nullptr);
 
-    MemoryBank(Lock, const Bank &bank, MemoryObjectPtr prev = nullptr):
+    MemoryBank(Lock, const Bank &bank, MemoryObjectPtr prev):
         MemoryObject(prev), bank_(bank_) {}
+    MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_BANK; }
 
 protected:
     bool pack(Block *block, size_t index) override;
+    void print(XmlPrinter &printer) override;
 
 private:
     Bank bank_;
@@ -172,16 +195,19 @@ private:
 // MemoryEffect
 
 struct MemoryEffect: MemoryObject {
+    template<typename U>
     static std::shared_ptr<MemoryEffect> create(
-        const Effect &effect, MemoryObjectPtr prev = nullptr);
+        const U &u, MemoryObjectPtr prev = nullptr);
 
-    MemoryEffect(Lock, const Effect &effect, MemoryObjectPtr prev = nullptr):
+    MemoryEffect(Lock, const Effect &effect, MemoryObjectPtr prev):
         MemoryObject(prev), effect_(effect) {}
+    MemoryEffect(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_EFFECT; }
 
 protected:
     bool pack(Block *block, size_t index) override;
+    void print(XmlPrinter &printer) override;
 
 private:
     Effect effect_;
@@ -192,16 +218,19 @@ private:
 // MemoryVoice
 
 struct MemoryVoice: MemoryObject {
+    template<typename U>
     static std::shared_ptr<MemoryVoice> create(
-        const Voice &voice, MemoryObjectPtr prev = nullptr);
+        const U &u, MemoryObjectPtr prev = nullptr);
 
-    MemoryVoice(Lock, const Voice &voice, MemoryObjectPtr prev = nullptr):
+    MemoryVoice(Lock, const Voice &voice, MemoryObjectPtr prev):
         MemoryObject(prev), voice_(voice) {}
+    MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_VOICE; }
 
 protected:
     bool pack(Block *block, size_t index) override;
+    void print(XmlPrinter &printer) override;
 
 private:
     Voice voice_;
@@ -212,16 +241,19 @@ private:
 // MemoryWave
 
 struct MemoryWave: MemoryObject {
+    template<typename U>
     static std::shared_ptr<MemoryWave> create(
-        const Wave &wave, MemoryObjectPtr prev = nullptr);
+        const U &u, MemoryObjectPtr prev = nullptr);
 
-    MemoryWave(Lock, const Wave &wave, MemoryObjectPtr prev = nullptr):
+    MemoryWave(Lock, const Wave &wave, MemoryObjectPtr prev):
         MemoryObject(prev), wave_(wave) {}
+    MemoryWave(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_WAVE; }
 
 protected:
     bool pack(Block *block, size_t index) override;
+    void print(XmlPrinter &printer) override;
 
 private:
     Wave wave_;
@@ -229,9 +261,23 @@ private:
 
 
 //------------------------------------------------------------------------------
+// Loader
+
+struct Loader {
+protected:
+    enum Flags {
+        FILE_OPEN_ERROR = 0x01,
+        FILE_READ_ERROR = 0x02,
+        XML_PARSE_ERROR = 0x04,
+    };
+    static Result flag_check(uint8_t flags);
+};
+
+
+//------------------------------------------------------------------------------
 // BlockLoader
 
-struct BlockLoader {
+struct BlockLoader: Loader {
     BlockLoader(std::string_view filename);
     BlockLoader(std::unique_ptr<uint8_t[]>&& storage, size_t size);
     BlockLoader(void *storage, size_t size);
@@ -240,11 +286,6 @@ struct BlockLoader {
     Result load(MemoryBlocks &blocks);
 
 private:
-    enum Flags {
-        FILE_OPEN_ERROR = 0x01,
-        FILE_READ_ERROR = 0x02,
-    };
-
     std::unique_ptr<uint8_t[]> storage_;
     size_t size_ = 0;
     uint8_t flags_ = 0;
@@ -255,12 +296,42 @@ template<size_t N>BlockLoader::BlockLoader(uint8_t (&storage)[N]):
 
 
 //------------------------------------------------------------------------------
+// XmlLoader
+
+struct XmlLoader: Loader {
+    XmlLoader(std::string_view filename);
+    XmlLoader(std::unique_ptr<XmlDocument>&& xml);
+    ~XmlLoader();
+
+    Result load(MemoryObjectPtr &objects);
+
+private:
+    std::unique_ptr<XmlDocument> xml_;
+    uint8_t flags_ = 0;
+};
+
+
+//------------------------------------------------------------------------------
+// Dumper
+
+struct Dumper {
+protected:
+    Dumper(std::string_view filename): filename_(filename) {}
+    Dumper(void *storage, size_t size):
+        destination_(storage), size_(size) {}
+
+    std::string filename_;
+    void *destination_ = nullptr;
+    size_t size_ = 0;
+};
+
+
+//------------------------------------------------------------------------------
 // BlockDumper
 
-struct BlockDumper {
-    BlockDumper(std::string_view filename): filename_(filename) {}
-    BlockDumper(void *storage, size_t size):
-        destination_(storage), size_(size) {}
+struct BlockDumper: Dumper {
+    BlockDumper(std::string_view filename): Dumper(filename) {}
+    BlockDumper(void *storage, size_t size): Dumper(storage, size) {}
     template<size_t N>BlockDumper(uint8_t (&storage)[N]);
 
     Result dump(const MemoryBlocks &blocks, size_t *write_size = nullptr);
@@ -268,14 +339,31 @@ struct BlockDumper {
 private:
     Result memory_dump(const MemoryBlocks &blocks, size_t *write_size);
     Result file_dump(const MemoryBlocks &blocks, size_t *write_size);
-
-    std::string filename_;
-    void *destination_ = nullptr;
-    size_t size_ = 0;
 };
 
 template<size_t N>BlockDumper::BlockDumper(uint8_t (&storage)[N]):
     BlockDumper(storage, N) {}
+
+
+//------------------------------------------------------------------------------
+// XmlDumper
+
+struct XmlDumper: Dumper {
+    XmlDumper(std::string_view filename): Dumper(filename) {}
+    XmlDumper(void *storage, size_t size): Dumper(storage, size) {}
+    template<size_t N>XmlDumper(uint8_t (&storage)[N]);
+    ~XmlDumper() = default;
+
+    Result dump(const MemoryObjectPtr objects, size_t *write_size = nullptr);
+
+private:
+    Result memory_dump(const MemoryObjectPtr objects, size_t *write_size);
+    Result file_dump(const MemoryObjectPtr objects, size_t *write_size);
+    void print(const MemoryObjectPtr objects, XmlPrinter &printer);
+};
+
+template<size_t N>XmlDumper::XmlDumper(uint8_t (&storage)[N]):
+    XmlDumper(storage, N) {}
 
 
 } //Casio::FZ_1::API

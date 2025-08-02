@@ -1,5 +1,7 @@
 #include "Casio/FZ-1_API.h"
+#include "3/tinyxml2/tinyxml2.h"
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 
 #define TRACE //printf("@-> %s:%u\n", __FILE__, __LINE__)
@@ -17,7 +19,9 @@ static FzFileHeader &header_(void *b){
     return static_cast<UnknownBlock*>(b)->header;
 }
 
+
 //------------------------------------------------------------------------------
+// MemoryBlocks
 
 Block *MemoryBlocks::block(size_t n) const {
     return static_cast<Block*>(block_data(n));
@@ -264,9 +268,10 @@ Result MemoryBlocks::parse() {
 
 
 //------------------------------------------------------------------------------
+// MemoryObject
 
 template<typename T, typename U>
-auto MemoryObject::create(U &u, MemoryObjectPtr prev) {
+auto MemoryObject::create(const U &u, MemoryObjectPtr prev) {
     auto result = std::make_shared<T>(Lock{}, u, prev);
     if(prev) {
         // link() must be called *after* the result object is fully constructed
@@ -336,7 +341,7 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
     if(!n) {
         return RESULT_NO_BLOCKS;
     }
-    if((effect_count != 0) && (effect_count != 1)) {
+    if(effect_count > 1) {
         return RESULT_BAD_EFFECT_BLOCK_COUNT;
     }
     size_t voice_block_count = (voice_count + 3) / 4;
@@ -373,10 +378,14 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
             return RESULT_BAD_BLOCK_INDEX;
         }
         if(is_voice) {
+            if(!voice_index) {
+                i++;
+            }
             voice_index = (voice_index + 1) % 4;
-        }
-        if(o->type() != BT_EFFECT) {
-            i++;
+        } else {
+            if(o->type() != BT_EFFECT) {
+                i++;
+            }
         }
         o = o->next();
     }
@@ -387,9 +396,50 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
 }
 
 
+//------------------------------------------------------------------------------
+// MemoryBank
+
+template<typename U>
 std::shared_ptr<MemoryBank> MemoryBank::create(
-    const Bank &bank, MemoryObjectPtr prev) {
-    return MemoryObject::create<MemoryBank>(bank, prev);
+    const U &u, MemoryObjectPtr prev) {
+    return MemoryObject::create<MemoryBank>(u, prev);
+}
+
+MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
+    MemoryObject(prev) {
+#define READ_VALUE_ARRAY(name_, count_) do { \
+        if(auto *e = element.FirstChildElement(#name_)) { \
+            if(const char *text = e->GetText()) { \
+                const char *s = text; \
+                size_t i = 0; \
+                while(s && (i < count_)) { \
+                    bank_.name_[i++] = atoll(s); \
+                    s = strchr(s + 1, ','); \
+                    if(s) { s++; } \
+                } \
+            } \
+        } \
+    } while(0)
+
+    char tmp[14];
+    const char *name = tmp;
+    element.QueryStringAttribute("name", &name);
+    memcpy(bank_.name, name, 14);
+
+    unsigned int voice_count = 0;
+    element.QueryUnsignedAttribute("voice_count", &voice_count);
+    bank_.voice_count = voice_count;
+
+    READ_VALUE_ARRAY(midi_hi, voice_count);
+    READ_VALUE_ARRAY(midi_lo, voice_count);
+    READ_VALUE_ARRAY(velocity_hi, voice_count);
+    READ_VALUE_ARRAY(velocity_lo, voice_count);
+    READ_VALUE_ARRAY(midi_origin, voice_count);
+    READ_VALUE_ARRAY(midi_channel, voice_count);
+    READ_VALUE_ARRAY(gchn, voice_count);
+    READ_VALUE_ARRAY(area_volume, voice_count);
+    READ_VALUE_ARRAY(vp, voice_count);
+#undef READ_VALUE_ARRAY
 }
 
 bool MemoryBank::pack(Block *block, size_t index) {
@@ -401,10 +451,74 @@ bool MemoryBank::pack(Block *block, size_t index) {
     return false;
 }
 
+void MemoryBank::print(XmlPrinter &p) {
+#define PRINT_VALUE_ARRAY(name_, count_) do { \
+        p.OpenElement(#name_); \
+        for(size_t i = 0; i < count_; i++) { \
+            p.PushText(bank_.name_[i]); \
+            if(i < (count_ - 1)) { p.PushText(", "); } \
+        } \
+        p.CloseElement(); \
+    } while(0)
 
+    size_t voice_count = bank_.voice_count;
+    p.OpenElement("bank");
+    p.PushAttribute("name", bank_.name);
+    p.PushAttribute("voice_count", voice_count);
+    PRINT_VALUE_ARRAY(midi_hi, voice_count);
+    PRINT_VALUE_ARRAY(midi_lo, voice_count);
+    PRINT_VALUE_ARRAY(velocity_hi, voice_count);
+    PRINT_VALUE_ARRAY(velocity_lo, voice_count);
+    PRINT_VALUE_ARRAY(midi_origin, voice_count);
+    PRINT_VALUE_ARRAY(midi_channel, voice_count);
+    PRINT_VALUE_ARRAY(gchn, voice_count);
+    PRINT_VALUE_ARRAY(area_volume, voice_count);
+    PRINT_VALUE_ARRAY(vp, voice_count);
+    p.CloseElement();
+#undef PRINT_VALUE_ARRAY
+}
+
+
+//------------------------------------------------------------------------------
+// MemoryEffect
+
+template<typename U>
 std::shared_ptr<MemoryEffect> MemoryEffect::create(
-    const Effect &effect, MemoryObjectPtr prev) {
-    return MemoryObject::create<MemoryEffect>(effect, prev);
+    const U &u, MemoryObjectPtr prev) {
+    return MemoryObject::create<MemoryEffect>(u, prev);
+}
+
+MemoryEffect::MemoryEffect(Lock, const XmlElement &element, MemoryObjectPtr prev):
+    MemoryObject(prev) {
+#define READ_VALUE(name_) do { \
+        effect_.name_ = element.IntAttribute(#name_, 0); \
+    } while(0)
+
+    READ_VALUE(pitchbend_depth);
+    READ_VALUE(master_volume);
+    READ_VALUE(sustain_switch);
+    READ_VALUE(modulation_lfo_pitch);
+    READ_VALUE(modulation_lfo_amplitude);
+    READ_VALUE(modulation_lfo_filter);
+    READ_VALUE(modulation_lfo_filter_q);
+    READ_VALUE(modulation_filter);
+    READ_VALUE(modulation_amplitude);
+    READ_VALUE(modulation_filter_q);
+    READ_VALUE(footvolume_lfo_pitch);
+    READ_VALUE(footvolume_lfo_amplitude);
+    READ_VALUE(footvolume_lfo_filter);
+    READ_VALUE(footvolume_lfo_filter_q);
+    READ_VALUE(footvolume_amplitude);
+    READ_VALUE(footvolume_filter);
+    READ_VALUE(footvolume_filter_q);
+    READ_VALUE(aftertouch_lfo_pitch);
+    READ_VALUE(aftertouch_lfo_amplitude);
+    READ_VALUE(aftertouch_lfo_filter);
+    READ_VALUE(aftertouch_lfo_filter_q);
+    READ_VALUE(aftertouch_amplitude);
+    READ_VALUE(aftertouch_filter);
+    READ_VALUE(aftertouch_filter_q);
+#undef READ_VALUE
 }
 
 bool MemoryEffect::pack(Block *block, size_t index) {
@@ -416,10 +530,121 @@ bool MemoryEffect::pack(Block *block, size_t index) {
     return false;
 }
 
+void MemoryEffect::print(XmlPrinter &p) {
+#define PRINT_VALUE(name_) \
+    if(effect_.name_) { p.PushAttribute(#name_, effect_.name_); }
 
+    p.OpenElement("effect");
+    PRINT_VALUE(pitchbend_depth);
+    PRINT_VALUE(master_volume);
+    PRINT_VALUE(sustain_switch);
+    PRINT_VALUE(modulation_lfo_pitch);
+    PRINT_VALUE(modulation_lfo_amplitude);
+    PRINT_VALUE(modulation_lfo_filter);
+    PRINT_VALUE(modulation_lfo_filter_q);
+    PRINT_VALUE(modulation_filter);
+    PRINT_VALUE(modulation_amplitude);
+    PRINT_VALUE(modulation_filter_q);
+    PRINT_VALUE(footvolume_lfo_pitch);
+    PRINT_VALUE(footvolume_lfo_amplitude);
+    PRINT_VALUE(footvolume_lfo_filter);
+    PRINT_VALUE(footvolume_lfo_filter_q);
+    PRINT_VALUE(footvolume_amplitude);
+    PRINT_VALUE(footvolume_filter);
+    PRINT_VALUE(footvolume_filter_q);
+    PRINT_VALUE(aftertouch_lfo_pitch);
+    PRINT_VALUE(aftertouch_lfo_amplitude);
+    PRINT_VALUE(aftertouch_lfo_filter);
+    PRINT_VALUE(aftertouch_lfo_filter_q);
+    PRINT_VALUE(aftertouch_amplitude);
+    PRINT_VALUE(aftertouch_filter);
+    PRINT_VALUE(aftertouch_filter_q);
+    p.CloseElement();
+#undef PRINT_VALUE
+}
+
+
+//------------------------------------------------------------------------------
+// MemoryVoice
+
+template<typename U>
 std::shared_ptr<MemoryVoice> MemoryVoice::create(
-    const Voice &voice, MemoryObjectPtr prev) {
-    return MemoryObject::create<MemoryVoice>(voice, prev);
+    const U &u, MemoryObjectPtr prev) {
+    return MemoryObject::create<MemoryVoice>(u, prev);
+}
+
+MemoryVoice::MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev):
+    MemoryObject(prev) {
+#define READ_VALUE(name_) do { \
+        voice_.name_ = element.IntAttribute(#name_, 0); \
+    } while(0)
+#define READ_UNSIGNED_VALUE(name_) do { \
+        voice_.name_ = element.UnsignedAttribute(#name_, 0); \
+    } while(0)
+#define READ_VALUE_ARRAY(name_) do { \
+        if(auto *e = element.FirstChildElement(#name_)) { \
+            if(const char *text = e->GetText()) { \
+                const char *s = text; \
+                size_t i = 0; \
+                while(s && (i < 8)) { \
+                    voice_.name_[i++] = atoll(s); \
+                    s = strchr(s + 1, ','); \
+                    if(s) { s++; } \
+                } \
+            } \
+        } \
+    } while(0)
+
+    char tmp[14];
+    const char *name = tmp;
+    element.QueryStringAttribute("name", &name);
+    memcpy(voice_.name, name, 14);
+
+    READ_VALUE(data_start);
+    READ_VALUE(data_end);
+    READ_VALUE(play_start);
+    READ_VALUE(play_end);
+    READ_VALUE(loop);
+    READ_VALUE(loop_sustain_point);
+    READ_VALUE(loop_end_point);
+    READ_VALUE(pitch_correction);
+    READ_VALUE(filter);
+    READ_VALUE(filter_q);
+    READ_VALUE(dca_sustain);
+    READ_VALUE(dca_end);
+    READ_VALUE(dcf_sustain);
+    READ_VALUE(dcf_end);
+    READ_UNSIGNED_VALUE(lfo_delay);
+    READ_UNSIGNED_VALUE(lfo_name);
+    READ_UNSIGNED_VALUE(lfo_attack);
+    READ_VALUE(lfo_rate);
+    READ_VALUE(lfo_pitch);
+    READ_VALUE(lfo_amplitude);
+    READ_VALUE(lfo_filter);
+    READ_VALUE(lfo_filter_q);
+    READ_VALUE(velocity_filter_q_key_follow);
+    READ_VALUE(amplitude_key_follow);
+    READ_VALUE(amplitude_rate_key_follow);
+    READ_VALUE(filter_key_follow);
+    READ_VALUE(filter_rate_key_follow);
+    READ_VALUE(velocity_amplitude_key_follow);
+    READ_VALUE(velocity_amplitude_rate_key_follow);
+    READ_VALUE(velocity_filter_key_follow);
+    READ_VALUE(velocity_filter_rate_key_follow);
+    READ_UNSIGNED_VALUE(midi_hi);
+    READ_UNSIGNED_VALUE(midi_lo);
+    READ_UNSIGNED_VALUE(midi_origin);
+    READ_UNSIGNED_VALUE(frequency);
+    READ_VALUE_ARRAY(loop_start);
+    READ_VALUE_ARRAY(loop_end);
+    READ_VALUE_ARRAY(loop_xfade_time);
+    READ_VALUE_ARRAY(loop_time);
+    READ_VALUE_ARRAY(dca_rate);
+    READ_VALUE_ARRAY(dca_end_level);
+    READ_VALUE_ARRAY(dcf_rate);
+    READ_VALUE_ARRAY(dcf_end_level);
+#undef READ_VALUE_ARRAY
+#undef READ_VALUE
 }
 
 bool MemoryVoice::pack(Block *block, size_t index) {
@@ -431,10 +656,93 @@ bool MemoryVoice::pack(Block *block, size_t index) {
     return false;
 }
 
+void MemoryVoice::print(XmlPrinter &p) {
+#define PRINT_VALUE(name_) \
+    if(voice_.name_) { p.PushAttribute(#name_, voice_.name_); }
+#define PRINT_VALUE_ARRAY(name_) do { \
+        p.OpenElement(#name_); \
+        for(size_t i = 0; i < 8; i++) { \
+            p.PushText(voice_.name_[i]); \
+            if(i < 7) { p.PushText(", "); } \
+        } \
+        p.CloseElement(); \
+    } while(0)
 
+    p.OpenElement("voice");
+    p.PushAttribute("name", voice_.name);
+    PRINT_VALUE(data_start);
+    PRINT_VALUE(data_end);
+    PRINT_VALUE(play_start);
+    PRINT_VALUE(play_end);
+    PRINT_VALUE(loop);
+    PRINT_VALUE(loop_sustain_point);
+    PRINT_VALUE(loop_end_point);
+    PRINT_VALUE(pitch_correction);
+    PRINT_VALUE(filter);
+    PRINT_VALUE(filter_q);
+    PRINT_VALUE(dca_sustain);
+    PRINT_VALUE(dca_end);
+    PRINT_VALUE(dcf_sustain);
+    PRINT_VALUE(dcf_end);
+    PRINT_VALUE(lfo_delay);
+    PRINT_VALUE(lfo_name);
+    PRINT_VALUE(lfo_attack);
+    PRINT_VALUE(lfo_rate);
+    PRINT_VALUE(lfo_pitch);
+    PRINT_VALUE(lfo_amplitude);
+    PRINT_VALUE(lfo_filter);
+    PRINT_VALUE(lfo_filter_q);
+    PRINT_VALUE(velocity_filter_q_key_follow);
+    PRINT_VALUE(amplitude_key_follow);
+    PRINT_VALUE(amplitude_rate_key_follow);
+    PRINT_VALUE(filter_key_follow);
+    PRINT_VALUE(filter_rate_key_follow);
+    PRINT_VALUE(velocity_amplitude_key_follow);
+    PRINT_VALUE(velocity_amplitude_rate_key_follow);
+    PRINT_VALUE(velocity_filter_key_follow);
+    PRINT_VALUE(velocity_filter_rate_key_follow);
+    PRINT_VALUE(midi_hi);
+    PRINT_VALUE(midi_lo);
+    PRINT_VALUE(midi_origin);
+    PRINT_VALUE(frequency);
+    PRINT_VALUE_ARRAY(loop_start);
+    PRINT_VALUE_ARRAY(loop_end);
+    PRINT_VALUE_ARRAY(loop_xfade_time);
+    PRINT_VALUE_ARRAY(loop_time);
+    PRINT_VALUE_ARRAY(dca_rate);
+    PRINT_VALUE_ARRAY(dca_end_level);
+    PRINT_VALUE_ARRAY(dcf_rate);
+    PRINT_VALUE_ARRAY(dcf_end_level);
+    p.CloseElement();
+#undef PRINT_VALUE_ARRAY
+#undef PRINT_VALUE
+}
+
+
+//------------------------------------------------------------------------------
+// MemoryWave
+
+template<typename U>
 std::shared_ptr<MemoryWave> MemoryWave::create(
-    const Wave &wave, MemoryObjectPtr prev) {
-    return MemoryObject::create<MemoryWave>(wave, prev);
+    const U &u, MemoryObjectPtr prev) {
+    return MemoryObject::create<MemoryWave>(u, prev);
+}
+
+MemoryWave::MemoryWave(Lock, const XmlElement &element, MemoryObjectPtr prev):
+    MemoryObject(prev) {
+
+    const char
+        *text = element.GetText(),
+        *current = text;
+    size_t index = 0;
+    while(current && index < 512) {
+        while(isspace(*current)) { current++; }
+        char tmp[5] = {0};
+        memcpy(tmp, current, 4);
+        uint16_t sample = strtoul(tmp, nullptr, 16);
+        wave_.samples[index++] = static_cast<int16_t>(sample);
+        current += 4;
+    }
 }
 
 bool MemoryWave::pack(Block *block, size_t index) {
@@ -446,8 +754,47 @@ bool MemoryWave::pack(Block *block, size_t index) {
     return false;
 }
 
+void MemoryWave::print(XmlPrinter &p) {
+    p.OpenElement("wave");
+    char buffer[2822] = { '\n' };
+    char *ptr = buffer + 1;
+
+    for(size_t i = 0; i < 32; i++) {
+        snprintf(ptr, 9, "        ");
+        ptr += 8;
+        for(size_t j = 0; j < 16; j++) {
+            uint16_t sample = static_cast<uint16_t>(wave_.samples[i * 16 + j]);
+            snprintf(ptr, 6, "%04x%c", sample, (j < 15) ? ' ' : '\n' );
+            ptr += 5;
+        }
+    }
+
+    snprintf(ptr, 5, "    ");
+    ptr += 4;
+    assert(ptr - buffer == 2821);
+    p.PushText(buffer);
+    p.CloseElement();
+}
 
 //------------------------------------------------------------------------------
+// Loader
+
+Result Loader::flag_check(uint8_t flags) {
+    if(flags & FILE_OPEN_ERROR) {
+        return RESULT_FILE_OPEN_ERROR;
+    }
+    if(flags & FILE_READ_ERROR) {
+        return RESULT_FILE_READ_ERROR;
+    }
+    if(flags & XML_PARSE_ERROR) {
+        return RESULT_XML_PARSE_ERROR;
+    }
+    return RESULT_OK;
+}
+
+
+//------------------------------------------------------------------------------
+// BlockLoader
 
 BlockLoader::BlockLoader(std::string_view filename) {
     FILE *file = fopen(filename.data(), "rb");
@@ -484,11 +831,8 @@ BlockLoader::BlockLoader(void *storage, size_t size):
 
 Result BlockLoader::load(MemoryBlocks &mb) {
     mb.reset();
-    if(flags_ & FILE_OPEN_ERROR) {
-        return RESULT_FILE_OPEN_ERROR;
-    }
-    if(flags_ & FILE_READ_ERROR) {
-        return RESULT_FILE_READ_ERROR;
+    if(auto r = flag_check(flags_); r != RESULT_OK) {
+        return r;
     }
     if(!size_) {
         return RESULT_NO_BLOCKS;
@@ -512,6 +856,93 @@ Result BlockLoader::load(MemoryBlocks &mb) {
 
 
 //------------------------------------------------------------------------------
+// XmlLoader
+
+XmlLoader::XmlLoader(std::string_view filename) {
+    FILE *file = fopen(filename.data(), "r");
+    if(!file) {
+        flags_ |= FILE_OPEN_ERROR;
+        return;
+    }
+    FileCloser close_file(file);
+
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    std::unique_ptr<char[]> storage;
+    if(size) {
+        rewind(file);
+        storage = std::make_unique<char[]>(size);
+        size_t r = fread(storage.get(), size, 1, file);
+        if(r != 1) {
+            flags_ |= FILE_READ_ERROR;
+            return;
+        }
+    }
+    xml_ = std::make_unique<XmlDocument>();
+    auto e = xml_->Parse(storage.get(), size);
+    if(e != tinyxml2::XML_SUCCESS) {
+        flags_ |= XML_PARSE_ERROR;
+    }
+}
+
+XmlLoader::XmlLoader(std::unique_ptr<XmlDocument>&& xml):
+    xml_(std::move(xml)) {}
+
+XmlLoader::~XmlLoader() = default;
+
+Result XmlLoader::load(MemoryObjectPtr &objects) {
+    static const std::string
+        fz_ml_name = "fz-ml",
+        bank_name = "bank",
+        effect_name = "effect",
+        voice_name = "voice",
+        wave_name = "wave";
+    objects.reset();
+    if(auto r = flag_check(flags_); r != RESULT_OK) {
+        return r;
+    }
+    if(!xml_) {
+        return RESULT_XML_EMPTY;
+    }
+    auto *root = xml_->RootElement();
+    if(!root) {
+        return RESULT_XML_MISSING_ROOT;
+    }
+    if(fz_ml_name != root->Name()) {
+        return RESULT_XML_UNKNOWN_ROOT_ELEMENT;
+    }
+    auto *element = root->FirstChildElement();
+    if(!element) {
+        return RESULT_XML_MISSING_CHILDREN;
+    }
+    MemoryObjectPtr
+        current,
+        first;
+    while(element) {
+        if(bank_name == element->Name()) {
+            current = MemoryBank::create(*element, current);
+            if(!first) { first = current; }
+        } else if(effect_name == element->Name()) {
+            current = MemoryEffect::create(*element, current);
+            if(!first) { first = current; }
+        } else if(voice_name == element->Name()) {
+            current = MemoryVoice::create(*element, current);
+            if(!first) { first = current; }
+        } else if(wave_name == element->Name()) {
+            current = MemoryWave::create(*element, current);
+            if(!first) { first = current; }
+        } else {
+            return RESULT_XML_UNKNOWN_ELEMENT;
+        }
+        element = element->NextSiblingElement();
+    }
+    objects = first;
+    return RESULT_OK;
+}
+
+
+//------------------------------------------------------------------------------
+// BlockDumper
 
 Result BlockDumper::dump(const MemoryBlocks &blocks, size_t *write_size) {
     if(destination_) {
@@ -562,5 +993,72 @@ Result BlockDumper::file_dump(const MemoryBlocks &blocks, size_t *write_size) {
     return RESULT_OK;
 }
 
+
+//------------------------------------------------------------------------------
+// XmlDumper
+
+Result XmlDumper::dump(const MemoryObjectPtr objects, size_t *write_size) {
+    if(destination_) {
+        return memory_dump(objects, write_size);
+    } else if(!filename_.empty()) {
+        return file_dump(objects, write_size);
+    }
+    return RESULT_UNINITIALIZED_DUMPER;
+}
+
+Result XmlDumper::memory_dump(const MemoryObjectPtr objects, size_t *write_size) {
+    assert(destination_);
+    if(write_size) {
+        *write_size = 0;
+    }
+    XmlPrinter printer(nullptr, true);
+    print(objects, printer);
+    size_t copy_size = printer.CStrSize();
+    if(write_size) {
+        *write_size = copy_size;
+    }
+    if(size_ < copy_size) {
+        return RESULT_MEMORY_TOO_SMALL;
+    }
+    memcpy(destination_, printer.CStr(), copy_size);
+    return RESULT_OK;
+}
+
+Result XmlDumper::file_dump(const MemoryObjectPtr objects, size_t *write_size) {
+    assert(!filename_.empty());
+    if(write_size) {
+        *write_size = 0;
+    }
+    FILE *file = fopen(filename_.data(), "w");
+    if(!file) {
+        return RESULT_FILE_OPEN_ERROR;
+    }
+    FileCloser close_file(file);
+
+    XmlPrinter printer(file);
+    print(objects, printer);
+    size_t
+        copy_size = printer.CStrSize(),
+        w = fwrite(printer.CStr(), copy_size, 1, file);
+
+    if(w != 1) {
+        return RESULT_FILE_WRITE_ERROR;
+    }
+    if(write_size) {
+        *write_size = copy_size;
+    }
+    return RESULT_OK;
+}
+
+
+void XmlDumper::print(const MemoryObjectPtr objects, XmlPrinter &p) {
+    p.OpenElement("fz-ml");
+    auto o = objects;
+    while(o) {
+        o->print(p);
+        o = o->next();
+    }
+    p.CloseElement();
+}
 
 } // Casio::FZ_1::API
