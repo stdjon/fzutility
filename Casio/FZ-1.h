@@ -52,9 +52,9 @@ struct Bank {
     uint8_t velocity_lo[MAXV] = { 0 }; // 1-127 Velocity split lo
     uint8_t midi_origin[MAXV] = { 0 }; // Original note (MIDI note number)
     uint8_t midi_channel[MAXV] = { 0 }; // 0-15 Recieve MIDI channel
-    uint8_t gchn[MAXV] = { 0 }; // Each bit represents an 'individual output'
+    uint8_t output_mask[MAXV] = { 0 }; // Each bit represents an 'individual output'
     uint8_t area_volume[MAXV] = { 0 }; // 1-127 Area volume (Usually 127)
-    uint16_t vp[MAXV] = { 0 }; // 0-63 Voice number to use in area
+    uint16_t voice_index[MAXV] = { 0 }; // 0-63 Voice number to use in area
     char name[14] = { 0 }; // Bank name, last two bytes should always be 0
 };
 static_assert(sizeof(Bank) == 656,

@@ -627,9 +627,9 @@ T_(test_xml_roundtrip_full, {
         CHECK(bank.velocity_lo[0] == 1);
         CHECK(bank.midi_origin[0] == 72);
         CHECK(bank.midi_channel[0] == 0);
-        CHECK(bank.gchn[0] == 255);
+        CHECK(bank.output_mask[0] == 255);
         CHECK(bank.area_volume[0] == 0);
-        CHECK(bank.vp[0] == 0);
+        CHECK(bank.voice_index[0] == 0);
         CHECK(bank.name[12] == 0);
         CHECK(bank.name[13] == 0);
         CHECK(std::string{ bank.name } == "BBBBBBBBBBBB");

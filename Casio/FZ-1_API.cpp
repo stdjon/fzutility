@@ -438,9 +438,9 @@ MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
     READ_VALUE_ARRAY(velocity_lo, voice_count);
     READ_VALUE_ARRAY(midi_origin, voice_count);
     READ_VALUE_ARRAY(midi_channel, voice_count);
-    READ_VALUE_ARRAY(gchn, voice_count);
+    READ_VALUE_ARRAY(output_mask, voice_count);
     READ_VALUE_ARRAY(area_volume, voice_count);
-    READ_VALUE_ARRAY(vp, voice_count);
+    READ_VALUE_ARRAY(voice_index, voice_count);
 #undef READ_VALUE_ARRAY
 }
 
@@ -473,9 +473,9 @@ void MemoryBank::print(XmlPrinter &p) {
     PRINT_VALUE_ARRAY(velocity_lo, voice_count);
     PRINT_VALUE_ARRAY(midi_origin, voice_count);
     PRINT_VALUE_ARRAY(midi_channel, voice_count);
-    PRINT_VALUE_ARRAY(gchn, voice_count);
+    PRINT_VALUE_ARRAY(output_mask, voice_count);
     PRINT_VALUE_ARRAY(area_volume, voice_count);
-    PRINT_VALUE_ARRAY(vp, voice_count);
+    PRINT_VALUE_ARRAY(voice_index, voice_count);
     p.CloseElement();
 #undef PRINT_VALUE_ARRAY
 }
