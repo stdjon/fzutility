@@ -361,6 +361,60 @@ T_(test_memory_object_list, {
 
 });
 
+T_(test_unpack_bank, {
+    auto bl = API::BlockLoader("fz_data/bank.fzb");
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_OK);
+    API::MemoryObjectPtr mo;
+    CHECK(!mo);
+    auto r2 = mb.unpack(mo);
+    CHECK(r2 == API::RESULT_OK);
+    CHECK(mo);
+    // mo 'anchors' the start of the list, so if we did mo = mo->next() we'd
+    // start to drop objects (i.e. !mo->prev() would always hold)
+    auto n = mo;
+    CHECK(n);
+    CHECK(!n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_BANK);
+    auto *b = n->bank();
+    CHECK(b);
+    check_bank(*b);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_VOICE);
+    auto *v = n->voice();
+    CHECK(v);
+    check_voice(*v);
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
+    n = n->next();
+    CHECK(n);
+    CHECK(n->prev());
+    CHECK(!n->next());
+    CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
+});
+
 T_(test_unpack_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
@@ -383,26 +437,33 @@ T_(test_unpack_full, {
     CHECK(n->prev());
     CHECK(n->next());
     CHECK(n->type() == API::BT_VOICE);
+    auto *v = n->voice();
+    CHECK(v);
+    check_voice(*v);
     n = n->next();
     CHECK(n);
     CHECK(n->prev());
     CHECK(n->next());
     CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
     n = n->next();
     CHECK(n);
     CHECK(n->prev());
     CHECK(n->next());
     CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
     n = n->next();
     CHECK(n);
     CHECK(n->prev());
     CHECK(n->next());
     CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
     n = n->next();
     CHECK(n);
     CHECK(n->prev());
     CHECK(!n->next());
     CHECK(n->type() == API::BT_WAVE);
+    CHECK(n->wave());
 });
 
 T_(test_empty_pack_error, {
