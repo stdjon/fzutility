@@ -159,7 +159,7 @@ Result MemoryBlocks::unpack(MemoryObjectPtr& object) {
     object = nullptr;
     auto *h = header();
     if(!h) {
-        return RESULT_NO_BLOCKS;
+        return RESULT_BAD_HEADER;
     }
     MemoryObjectPtr
         current,
@@ -209,13 +209,14 @@ void *MemoryBlocks::block_data(size_t n) const {
 
 
 Result MemoryBlocks::load(std::unique_ptr<uint8_t[]> &&storage, size_t count) {
-    storage_ = std::move(storage);
-    data_ = storage_.get();
-    count_ = count;
-    if(count_) {
+    if(count) {
+        storage_ = std::move(storage);
+        data_ = storage_.get();
+        count_ = count;
         file_type_ = FzFileType{ header()->file_type };
     } else {
         file_type_ = TYPE_UNKNOWN;
+        return RESULT_NO_BLOCKS;
     }
     return parse();
 }
