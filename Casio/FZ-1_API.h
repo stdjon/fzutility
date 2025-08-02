@@ -145,6 +145,12 @@ struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
     MemoryObjectPtr insert_after(MemoryObjectPtr obj);
     MemoryObjectPtr insert_before(MemoryObjectPtr obj);
 
+    // Only one of these will return non-null for any give object
+    virtual Bank *bank() { return nullptr; }
+    virtual Effect *effect() { return nullptr; }
+    virtual Voice *voice() { return nullptr; }
+    virtual Wave *wave() { return nullptr; }
+
     static Result pack(
         MemoryObjectPtr in, MemoryBlocks &out, FzFileType type = TYPE_FULL);
 
@@ -181,6 +187,7 @@ struct MemoryBank: MemoryObject {
     MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_BANK; }
+    Bank *bank() override { return &bank_; }
 
 protected:
     bool pack(Block *block, size_t index) override;
@@ -204,6 +211,7 @@ struct MemoryEffect: MemoryObject {
     MemoryEffect(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_EFFECT; }
+    Effect *effect() override { return &effect_; }
 
 protected:
     bool pack(Block *block, size_t index) override;
@@ -227,6 +235,7 @@ struct MemoryVoice: MemoryObject {
     MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_VOICE; }
+    Voice *voice() override { return &voice_; }
 
 protected:
     bool pack(Block *block, size_t index) override;
@@ -250,6 +259,7 @@ struct MemoryWave: MemoryObject {
     MemoryWave(Lock, const XmlElement &element, MemoryObjectPtr prev);
 
     BlockType type() override { return BT_WAVE; }
+    Wave *wave() override { return &wave_; }
 
 protected:
     bool pack(Block *block, size_t index) override;

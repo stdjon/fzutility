@@ -526,6 +526,36 @@ T_(test_memory_object_insert, {
 });
 
 
+T_(test_xml_roundtrip, {
+    auto bl = API::BlockLoader("fz_data/full.fzf");
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_OK);
+    API::MemoryObjectPtr mo;
+    CHECK(!mo);
+    auto r2 = mb.unpack(mo);
+    CHECK(r2 == API::RESULT_OK);
+    CHECK(mo);
+    CHECK(mo->next());
+    CHECK(mo->next()->type() == API::BT_VOICE);
+    CHECK(mo->next()->voice());
+    check_voice(*mo->next()->voice());
+    auto xd = API::XmlDumper("fz_data/full.fzml");
+    auto r3 = xd.dump(mo);
+    CHECK(r3 == API::RESULT_OK);
+    API::MemoryObjectPtr mo2;
+    CHECK(!mo2);
+    auto xl = API::XmlLoader("fz_data/full.fzml");
+    auto r4 = xl.load(mo2);
+    CHECK(r4 == API::RESULT_OK);
+    remove("fz_data/full.fzml");
+    CHECK(mo2);
+    CHECK(mo2->next());
+    CHECK(mo2->next()->type() == API::BT_VOICE);
+    CHECK(mo2->next()->voice());
+    check_voice(*mo2->next()->voice());
+});
+
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
 

@@ -421,10 +421,12 @@ MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
         } \
     } while(0)
 
-    char tmp[14];
-    const char *name = tmp;
+    const char *name = nullptr;
     element.QueryStringAttribute("name", &name);
+    size_t len = strlen(name);
     memcpy(bank_.name, name, 14);
+    bank_.name[12] = 0;
+    bank_.name[13] = 0;
 
     unsigned int voice_count = 0;
     element.QueryUnsignedAttribute("voice_count", &voice_count);
@@ -595,10 +597,12 @@ MemoryVoice::MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev):
         } \
     } while(0)
 
-    char tmp[14];
-    const char *name = tmp;
+    const char *name = nullptr;
     element.QueryStringAttribute("name", &name);
+    size_t len = strlen(name);
     memcpy(voice_.name, name, 14);
+    voice_.name[12] = 0;
+    voice_.name[13] = 0;
 
     READ_VALUE(data_start);
     READ_VALUE(data_end);
@@ -859,7 +863,7 @@ Result BlockLoader::load(MemoryBlocks &mb) {
 // XmlLoader
 
 XmlLoader::XmlLoader(std::string_view filename) {
-    FILE *file = fopen(filename.data(), "r");
+    FILE *file = fopen(filename.data(), "rb");
     if(!file) {
         flags_ |= FILE_OPEN_ERROR;
         return;
