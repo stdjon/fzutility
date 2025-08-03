@@ -21,6 +21,40 @@ static FzFileHeader &header_(void *b){
 
 
 //------------------------------------------------------------------------------
+// XmlElement read helpers
+
+// read a (signed) integer
+template<typename T>
+static void read_value(const XmlElement &element, const char *name, T &out) {
+    out = element.IntAttribute(name, 0);
+}
+
+// read an unsigned integer
+template<typename T>
+static void read_unsigned_value(
+    const XmlElement &element, const char *name, T &out) {
+    out = element.UnsignedAttribute(name, 0);
+}
+
+// read a comma-separated integer list (e.g. 1, 2, 3) into the members of an array
+template<typename T>
+static void read_value_array(
+    const XmlElement &element, const char *name, size_t count, T *out) {
+    if(auto *e = element.FirstChildElement(name)) {
+        if(const char *text = e->GetText()) {
+            const char *s = text;
+            size_t i = 0;
+            while(s && (i < count)) {
+                out[i++] = atoll(s);
+                s = strchr(s + 1, ',');
+                if(s) { s++; }
+            }
+        }
+    }
+}
+
+
+//------------------------------------------------------------------------------
 // MemoryBlocks
 
 Block *MemoryBlocks::block(size_t n) const {
@@ -408,19 +442,8 @@ std::shared_ptr<MemoryBank> MemoryBank::create(
 
 MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
     MemoryObject(prev) {
-#define READ_VALUE_ARRAY(name_, count_) do { \
-        if(auto *e = element.FirstChildElement(#name_)) { \
-            if(const char *text = e->GetText()) { \
-                const char *s = text; \
-                size_t i = 0; \
-                while(s && (i < count_)) { \
-                    bank_.name_[i++] = atoll(s); \
-                    s = strchr(s + 1, ','); \
-                    if(s) { s++; } \
-                } \
-            } \
-        } \
-    } while(0)
+#define READ_VALUE_ARRAY(name_, count_) \
+    read_value_array(element, #name_, count_, bank_.name_)
 
     const char *name = nullptr;
     element.QueryStringAttribute("name", &name);
@@ -493,9 +516,8 @@ std::shared_ptr<MemoryEffect> MemoryEffect::create(
 
 MemoryEffect::MemoryEffect(Lock, const XmlElement &element, MemoryObjectPtr prev):
     MemoryObject(prev) {
-#define READ_VALUE(name_) do { \
-        effect_.name_ = element.IntAttribute(#name_, 0); \
-    } while(0)
+#define READ_VALUE(name_) \
+    read_value(element, #name_, effect_.name_)
 
     READ_VALUE(pitchbend_depth);
     READ_VALUE(master_volume);
@@ -578,25 +600,12 @@ std::shared_ptr<MemoryVoice> MemoryVoice::create(
 
 MemoryVoice::MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev):
     MemoryObject(prev) {
-#define READ_VALUE(name_) do { \
-        voice_.name_ = element.IntAttribute(#name_, 0); \
-    } while(0)
-#define READ_UNSIGNED_VALUE(name_) do { \
-        voice_.name_ = element.UnsignedAttribute(#name_, 0); \
-    } while(0)
-#define READ_VALUE_ARRAY(name_) do { \
-        if(auto *e = element.FirstChildElement(#name_)) { \
-            if(const char *text = e->GetText()) { \
-                const char *s = text; \
-                size_t i = 0; \
-                while(s && (i < 8)) { \
-                    voice_.name_[i++] = atoll(s); \
-                    s = strchr(s + 1, ','); \
-                    if(s) { s++; } \
-                } \
-            } \
-        } \
-    } while(0)
+#define READ_VALUE(name_) \
+    read_value(element, #name_, voice_.name_)
+#define READ_UNSIGNED_VALUE(name_) \
+    read_unsigned_value(element, #name_, voice_.name_)
+#define READ_VALUE_ARRAY(name_) \
+    read_value_array(element, #name_, 8, voice_.name_)
 
     const char *name = nullptr;
     element.QueryStringAttribute("name", &name);
