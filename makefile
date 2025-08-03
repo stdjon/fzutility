@@ -19,6 +19,9 @@ clean:
 test: all
 	./$(test_target) $V
 
+tags: $(cppfiles) $(test_cppfiles) $(3files) $(headers) $(3headers)
+	ctags -R .
+
 $(target): $(cppfiles) $(3files) $(headers) $(3headers)
 	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
