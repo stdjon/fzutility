@@ -1,3 +1,4 @@
+#undef NDEBUG
 #include "Casio/FZ-1.h"
 #include "Casio/FZ-1_API.h"
 #include <assert.h>
@@ -26,7 +27,7 @@ struct Tests {
 #define T_(name_, ...) \
     assert(count_ < TEST_COUNT); \
     tests_[count_++] = [this] { \
-        printf("%s\n", #name_); \
+        printf("Testing %s...\n", #name_); \
         do { __VA_ARGS__ } while(false); \
         if(verbose_) { putchar('\n'); } \
     }
@@ -35,17 +36,17 @@ struct Tests {
     if(verbose_) { printf("  %s ?\n", #X_); } \
     assert(X_)
 
-#define RUN() \
-    Tests t_; \
+#define RUN(V_) \
+    Tests t_(V_); \
     for(size_t i = 0; t_.tests_[i]; i++) { \
         t_.tests_[i](); \
     }
 
-    Tests() {
+    Tests(bool v): verbose_(v) {
 //------------------------------------------------------------------------------
 // Actual tests
 
-T_(test_empty_loader, {
+T_(empty_loader, {
     auto bl = API::BlockLoader(nullptr, 0);
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -74,7 +75,7 @@ T_(test_empty_loader, {
     CHECK(!mb.wave(100));
 });
 
-T_(test_load_bank, {
+T_(load_bank, {
     auto bl = API::BlockLoader("fz_data/bank.fzb");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -120,7 +121,7 @@ T_(test_load_bank, {
     check_bank(*bank_header);
 });
 
-T_(test_load_effect, {
+T_(load_effect, {
     auto bl = API::BlockLoader("fz_data/effect.fze");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -177,7 +178,7 @@ T_(test_load_effect, {
     CHECK(effect_header->footvolume_amplitude = 64);
 });
 
-T_(test_load_full, {
+T_(load_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -224,7 +225,7 @@ T_(test_load_full, {
     check_voice((*voice_block)[0]);
 });
 
-T_(test_load_voice, {
+T_(load_voice, {
     auto bl = API::BlockLoader("fz_data/voice.fzv");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -279,7 +280,7 @@ T_(test_load_voice, {
     check_voice(*mb.voice(0));
 });
 
-T_(test_load_dump_load, {
+T_(load_dump_load, {
     auto bl1 = API::BlockLoader("fz_data/voice.fzv");
     API::MemoryBlocks mb1;
     auto r1 = bl1.load(mb1);
@@ -321,7 +322,7 @@ T_(test_load_dump_load, {
     CHECK(mb3.count() == 5);
 });
 
-T_(test_memory_object_list, {
+T_(memory_object_list, {
     Effect e;
     auto me = API::MemoryEffect::create(e);
     CHECK(me);
@@ -361,7 +362,7 @@ T_(test_memory_object_list, {
 
 });
 
-T_(test_unpack_bank, {
+T_(unpack_bank, {
     auto bl = API::BlockLoader("fz_data/bank.fzb");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -415,7 +416,7 @@ T_(test_unpack_bank, {
     CHECK(n->wave());
 });
 
-T_(test_unpack_full, {
+T_(unpack_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -466,7 +467,7 @@ T_(test_unpack_full, {
     CHECK(n->wave());
 });
 
-T_(test_empty_pack_error, {
+T_(empty_pack_error, {
     API::MemoryObjectPtr mo;
     API::MemoryBlocks mb;
     auto r = API::MemoryObject::pack(mo, mb);
@@ -474,7 +475,7 @@ T_(test_empty_pack_error, {
     CHECK(!mb.count());
 });
 
-T_(test_pack_basic, {
+T_(pack_basic, {
     Voice v1;
     auto mv1 = API::MemoryVoice::create(v1);
     CHECK(mv1);
@@ -498,7 +499,7 @@ T_(test_pack_basic, {
     CHECK(r2 == API::RESULT_OK);
 });
 
-T_(test_memory_object_insert, {
+T_(memory_object_insert, {
     Effect e;
     auto me = API::MemoryEffect::create(e);
     CHECK(me);
@@ -556,7 +557,7 @@ T_(test_memory_object_insert, {
     CHECK(s->next() == mb2);
 });
 
-T_(test_xml_roundtrip_bank, {
+T_(xml_roundtrip_bank, {
     auto bl = API::BlockLoader("fz_data/bank.fzb");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -586,7 +587,7 @@ T_(test_xml_roundtrip_bank, {
     check_bank(*mo2->bank());
 });
 
-T_(test_xml_roundtrip_full, {
+T_(xml_roundtrip_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
@@ -685,7 +686,12 @@ T_(test_xml_roundtrip_full, {
 };
 
 
-int main() {
-    RUN();
+int main(int argc, char **argv) {
+    bool verbose = false;
+    if(argc > 1 && argv[1][0] == '1') {
+        verbose = true;
+    }
+    RUN(verbose);
+    printf("\nAll tests and checks passed!\n");
     return EXIT_SUCCESS;
 }

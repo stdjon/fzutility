@@ -1,3 +1,5 @@
+.PHONY: clean test
+
 headers:=Casio/FZ-1.h Casio/FZ-1_API.h
 3headers:=3/tinyxml2/tinyxml2.h 3/tinywav/tinywav.h
 3files=3/tinyxml2/tinyxml2.cpp 3/tinywav/tinywav.c
@@ -15,7 +17,7 @@ clean:
 	rm -rf $(target) $(test_target)
 
 test: all
-	./$(test_target)
+	./$(test_target) $V
 
 $(target): $(cppfiles) $(3files) $(headers) $(3headers)
 	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
