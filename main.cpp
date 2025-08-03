@@ -135,6 +135,29 @@ void wave_test(API::MemoryBlocks &mb, size_t n) {
     }
 }
 
+void dump_wav(API::MemoryBlocks &mb) {
+    API::MemoryObjectPtr obj;
+    auto r = mb.unpack(obj);
+    if(r != API::RESULT_OK) {
+        printf("dump_wav: result = %u\n", r);
+    }
+    auto iter = obj;
+    while(iter && (iter->type() != API::BT_WAVE)) {
+        iter = iter->next();
+    }
+    if(!iter) {
+        printf("no waves\n");
+        return;
+    }
+    auto ptr = std::static_pointer_cast<API::MemoryWave>(iter);
+    if(!ptr) {
+        printf("no pointer\n");
+        return;
+    }
+    auto q = ptr->dump_wav("tmp.wav", 0, 0, 1000000);
+    printf("q = %u\n", q);
+}
+
 int main(int argc, const char **argv) {
     std::string filename{ "fz_data\\bank.fzb" };
     char filetype = 'b';
@@ -171,6 +194,9 @@ int main(int argc, const char **argv) {
         effect_test(mb);
         if(filetype == 'w') {
             wave_test(mb, waveblock);
+        }
+        if(filetype == 'x') {
+            dump_wav(mb);
         }
     } else {
         printf("Load error: %u\n", r);

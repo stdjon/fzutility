@@ -43,6 +43,10 @@ enum Result {
     RESULT_MISSING_WAVE,
     RESULT_NO_BLOCKS,
     RESULT_UNINITIALIZED_DUMPER,
+    RESULT_WAVE_BAD_OFFSET,
+    RESULT_WAVE_BAD_SAMPLERATE,
+    RESULT_WAVE_OPEN_ERROR,
+    RESULT_WAVE_WRITE_ERROR,
     RESULT_XML_EMPTY,
     RESULT_XML_MISSING_CHILDREN,
     RESULT_XML_MISSING_ROOT,
@@ -260,6 +264,15 @@ struct MemoryWave: MemoryObject {
 
     BlockType type() override { return BT_WAVE; }
     Wave *wave() override { return &wave_; }
+
+    // ** Interim API: subject to change! **
+    // Dump some or all of the wave data in the range specified (in samples):
+    //   [offset, offset + count)
+    // If the offset and/or count is longer than the current block and more
+    // WaveBlocks are available, these will be concatenated as needed.
+    // freq = [0, 1, 2] as per definition in Voice::frequency
+    Result dump_wav(
+        std::string_view filename, uint8_t freq, size_t offset, size_t count);
 
 protected:
     bool pack(Block *block, size_t index) override;

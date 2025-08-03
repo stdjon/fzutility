@@ -1,4 +1,5 @@
 #include "Casio/FZ-1_API.h"
+#include "3/tinywav/tinywav.h"
 #include "3/tinyxml2/tinyxml2.h"
 #include <assert.h>
 #include <ctype.h>
@@ -788,6 +789,60 @@ void MemoryWave::print(XmlPrinter &p) {
     assert(ptr - buffer == 2821);
     p.PushText(buffer);
     p.CloseElement();
+}
+
+Result MemoryWave::dump_wav(
+    std::string_view filename, uint8_t freq, size_t offset, size_t count) {
+
+    int32_t samplerate = 0;
+    switch(freq) {
+        case 0: samplerate = 36000; break;
+        case 1: samplerate = 18000; break;
+        case 2: samplerate = 9000; break;
+        default: return RESULT_WAVE_BAD_SAMPLERATE;
+    }
+    assert(samplerate);
+
+    auto iter = shared_from_this();
+    while((offset >= 512) && iter) {
+        offset -= 512;
+        iter = iter->next();
+        if(!iter && (offset >= 512)) {
+            return RESULT_WAVE_BAD_OFFSET;
+        }
+    }
+
+    TinyWav tw;
+    float float_buffer[512];
+    int r = tinywav_open_write(
+        &tw, 1, samplerate, TW_INT16, TW_INTERLEAVED, filename.data());
+    if(r) {
+        return RESULT_WAVE_OPEN_ERROR;
+    }
+    while(iter && count) {
+        size_t len = 0;
+        if(offset < 512) {
+            len = 512 - offset;
+        }
+        if(len > count) {
+            len -= count;
+        }
+        auto *wave = iter->wave();
+        assert(wave);
+        for(size_t i = 0; i < len; i++) {
+            float_buffer[i] = static_cast<float>(wave->samples[i + offset]);
+        }
+
+        int samples= tinywav_write_f(&tw, float_buffer, len);
+        if(samples != len) {
+            return RESULT_WAVE_WRITE_ERROR;
+        }
+        count -= len;
+        offset = 0;
+        iter = iter->next();
+    }
+    tinywav_close_write(&tw);
+    return RESULT_OK;
 }
 
 //------------------------------------------------------------------------------
