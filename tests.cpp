@@ -79,7 +79,7 @@ T_(load_bank, {
     auto bl = API::BlockLoader("fz_data/bank.fzb");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     CHECK(!mb.is_empty());
     CHECK(mb);
     CHECK(mb.file_type() == TYPE_BANK);
@@ -125,7 +125,7 @@ T_(load_effect, {
     auto bl = API::BlockLoader("fz_data/effect.fze");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     CHECK(!mb.is_empty());
     CHECK(mb);
     CHECK(mb.file_type() == TYPE_EFFECT);
@@ -182,7 +182,7 @@ T_(load_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     CHECK(!mb.is_empty());
     CHECK(mb);
     CHECK(mb.file_type() == TYPE_FULL);
@@ -229,7 +229,7 @@ T_(load_voice, {
     auto bl = API::BlockLoader("fz_data/voice.fzv");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     CHECK(!mb.is_empty());
     CHECK(mb);
     CHECK(mb.file_type() == TYPE_VOICE);
@@ -284,7 +284,7 @@ T_(load_dump_load, {
     auto bl1 = API::BlockLoader("fz_data/voice.fzv");
     API::MemoryBlocks mb1;
     auto r1 = bl1.load(mb1);
-    CHECK(r1 == API::RESULT_OK);
+    CHECK(API::result_success(r1));
     CHECK(!mb1.is_empty());
     CHECK(mb1);
     CHECK(mb1.file_type() == TYPE_VOICE);
@@ -294,13 +294,13 @@ T_(load_dump_load, {
     size_t bytes = 0;
     auto bd1 = API::BlockDumper(memory);
     auto r2 = bd1.dump(mb1, &bytes);
-    CHECK(r2 == API::RESULT_OK);
+    CHECK(API::result_success(r2));
     CHECK(bytes = 5 * 1024);
 
     auto bl2 = API::BlockLoader(memory);
     API::MemoryBlocks mb2;
     auto r3 = bl2.load(mb2);
-    CHECK(r3 == API::RESULT_OK);
+    CHECK(API::result_success(r3));
     CHECK(!mb2.is_empty());
     CHECK(mb2);
     CHECK(mb2.file_type() == TYPE_VOICE);
@@ -308,14 +308,14 @@ T_(load_dump_load, {
 
     auto bd2 = API::BlockDumper("fz_data/tmp");
     auto r4 = bd2.dump(mb1, &bytes);
-    CHECK(r4 == API::RESULT_OK);
+    CHECK(API::result_success(r4));
     CHECK(bytes = 5 * 1024);
 
     auto bl3 = API::BlockLoader("fz_data/tmp");
     remove("fz_data/tmp");
     API::MemoryBlocks mb3;
     auto r5 = bl3.load(mb3);
-    CHECK(r5 == API::RESULT_OK);
+    CHECK(API::result_success(r5));
     CHECK(!mb3.is_empty());
     CHECK(mb3);
     CHECK(mb3.file_type() == TYPE_VOICE);
@@ -366,11 +366,11 @@ T_(unpack_bank, {
     auto bl = API::BlockLoader("fz_data/bank.fzb");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     API::MemoryObjectPtr mo;
     CHECK(!mo);
     auto r2 = mb.unpack(mo);
-    CHECK(r2 == API::RESULT_OK);
+    CHECK(API::result_success(r2));
     CHECK(mo);
     // mo 'anchors' the start of the list, so if we did mo = mo->next() we'd
     // start to drop objects (i.e. !mo->prev() would always hold)
@@ -420,11 +420,11 @@ T_(unpack_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     API::MemoryObjectPtr mo;
     CHECK(!mo);
     auto r2 = mb.unpack(mo);
-    CHECK(r2 == API::RESULT_OK);
+    CHECK(API::result_success(r2));
     CHECK(mo);
     // mo 'anchors' the start of the list, so if we did mo = mo->next() we'd
     // start to drop objects (i.e. !mo->prev() would always hold)
@@ -484,7 +484,7 @@ T_(pack_basic, {
     CHECK(mw1);
     API::MemoryBlocks mb;
     auto r1 = API::MemoryObject::pack(mv1, mb, TYPE_FULL);
-    CHECK(r1 == API::RESULT_OK);
+    CHECK(API::result_success(r1));
 
     Effect e2;
     auto me2 = API::MemoryEffect::create(e2);
@@ -496,7 +496,7 @@ T_(pack_basic, {
     auto mw2 = API::MemoryWave::create(w2, mv2);
     CHECK(mw2);
     auto r2 = API::MemoryObject::pack(me2, mb, TYPE_FULL);
-    CHECK(r2 == API::RESULT_OK);
+    CHECK(API::result_success(r2));
 });
 
 T_(memory_object_insert, {
@@ -563,23 +563,23 @@ T_(xml_roundtrip_bank, {
     auto r = bl.load(mb);
     CHECK(mb.bank(0));
     check_bank(*mb.bank(0));
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     API::MemoryObjectPtr mo;
     CHECK(!mo);
     auto r2 = mb.unpack(mo);
-    CHECK(r2 == API::RESULT_OK);
+    CHECK(API::result_success(r2));
     CHECK(mo);
     CHECK(mo->type() == API::BT_BANK);
     CHECK(mo->bank());
     check_bank(*mo->bank());
     auto xd = API::XmlDumper("fz_data/bank.fzml");
     auto r3 = xd.dump(mo);
-    CHECK(r3 == API::RESULT_OK);
+    CHECK(API::result_success(r3));
     API::MemoryObjectPtr mo2;
     CHECK(!mo2);
     auto xl = API::XmlLoader("fz_data/bank.fzml");
     auto r4 = xl.load(mo2);
-    CHECK(r4 == API::RESULT_OK);
+    CHECK(API::result_success(r4));
     remove("fz_data/bank.fzml");
     CHECK(mo2);
     CHECK(mo2->type() == API::BT_BANK);
@@ -591,11 +591,11 @@ T_(xml_roundtrip_full, {
     auto bl = API::BlockLoader("fz_data/full.fzf");
     API::MemoryBlocks mb;
     auto r = bl.load(mb);
-    CHECK(r == API::RESULT_OK);
+    CHECK(API::result_success(r));
     API::MemoryObjectPtr mo;
     CHECK(!mo);
     auto r2 = mb.unpack(mo);
-    CHECK(r2 == API::RESULT_OK);
+    CHECK(API::result_success(r2));
     CHECK(mo);
     CHECK(mo->next());
     CHECK(mo->next()->type() == API::BT_VOICE);
@@ -603,12 +603,12 @@ T_(xml_roundtrip_full, {
     check_voice(*mo->next()->voice());
     auto xd = API::XmlDumper("fz_data/full.fzml");
     auto r3 = xd.dump(mo);
-    CHECK(r3 == API::RESULT_OK);
+    CHECK(API::result_success(r3));
     API::MemoryObjectPtr mo2;
     CHECK(!mo2);
     auto xl = API::XmlLoader("fz_data/full.fzml");
     auto r4 = xl.load(mo2);
-    CHECK(r4 == API::RESULT_OK);
+    CHECK(API::result_success(r4));
     remove("fz_data/full.fzml");
     CHECK(mo2);
     CHECK(mo2->next());

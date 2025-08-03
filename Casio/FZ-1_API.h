@@ -20,41 +20,55 @@ using XmlPrinter = tinyxml2::XMLPrinter;
 //------------------------------------------------------------------------------
 // Result codes
 
-enum Result {
-    RESULT_OK,
+#define FZ_EACH_RESULT(_) \
+    _(RESULT_OK) \
+     \
+    _(RESULT_BAD_BLOCK) \
+    _(RESULT_BAD_BLOCK_COUNT) \
+    _(RESULT_BAD_BLOCK_INDEX) \
+    _(RESULT_BAD_EFFECT_BLOCK_COUNT) \
+    _(RESULT_BAD_FILE_SIZE) \
+    _(RESULT_BAD_FILE_VERSION) \
+    _(RESULT_BAD_HEADER) \
+    _(RESULT_FILE_OPEN_ERROR) \
+    _(RESULT_FILE_READ_ERROR) \
+    _(RESULT_FILE_WRITE_ERROR) \
+    _(RESULT_MEMORY_TOO_SMALL) \
+    _(RESULT_MISMATCHED_BANK_BLOCK) \
+    _(RESULT_MISMATCHED_BLOCK_COUNT) \
+    _(RESULT_MISMATCHED_VOICE_BLOCK) \
+    _(RESULT_MISMATCHED_WAVE_BLOCK) \
+    _(RESULT_MISSING_BANK) \
+    _(RESULT_MISSING_VOICE) \
+    _(RESULT_MISSING_WAVE) \
+    _(RESULT_NO_BLOCKS) \
+    _(RESULT_UNINITIALIZED_DUMPER) \
+    _(RESULT_WAVE_BAD_OFFSET) \
+    _(RESULT_WAVE_BAD_SAMPLERATE) \
+    _(RESULT_WAVE_OPEN_ERROR) \
+    _(RESULT_WAVE_WRITE_ERROR) \
+    _(RESULT_XML_EMPTY) \
+    _(RESULT_XML_MISSING_CHILDREN) \
+    _(RESULT_XML_MISSING_ROOT) \
+    _(RESULT_XML_PARSE_ERROR) \
+    _(RESULT_XML_UNKNOWN_ELEMENT) \
+    _(RESULT_XML_UNKNOWN_ROOT_ELEMENT) \
+     \
+    _(RESULT_END_OF_LIST_)
 
-    RESULT_BAD_BLOCK,
-    RESULT_BAD_BLOCK_COUNT,
-    RESULT_BAD_BLOCK_INDEX,
-    RESULT_BAD_EFFECT_BLOCK_COUNT,
-    RESULT_BAD_FILE_SIZE,
-    RESULT_BAD_FILE_VERSION,
-    RESULT_BAD_HEADER,
-    RESULT_FILE_OPEN_ERROR,
-    RESULT_FILE_READ_ERROR,
-    RESULT_FILE_WRITE_ERROR,
-    RESULT_MEMORY_TOO_SMALL,
-    RESULT_MISMATCHED_BANK_BLOCK,
-    RESULT_MISMATCHED_BLOCK_COUNT,
-    RESULT_MISMATCHED_VOICE_BLOCK,
-    RESULT_MISMATCHED_WAVE_BLOCK,
-    RESULT_MISSING_BANK,
-    RESULT_MISSING_VOICE,
-    RESULT_MISSING_WAVE,
-    RESULT_NO_BLOCKS,
-    RESULT_UNINITIALIZED_DUMPER,
-    RESULT_WAVE_BAD_OFFSET,
-    RESULT_WAVE_BAD_SAMPLERATE,
-    RESULT_WAVE_OPEN_ERROR,
-    RESULT_WAVE_WRITE_ERROR,
-    RESULT_XML_EMPTY,
-    RESULT_XML_MISSING_CHILDREN,
-    RESULT_XML_MISSING_ROOT,
-    RESULT_XML_PARSE_ERROR,
-    RESULT_XML_UNKNOWN_ELEMENT,
-    RESULT_XML_UNKNOWN_ROOT_ELEMENT,
+#define FZ_ENUM_RESULT(name_) name_,
+
+enum Result: uint32_t {
+    FZ_EACH_RESULT(FZ_ENUM_RESULT)
 };
 
+// Return a string representation of a Result code (for convenience when error
+// reporting/debugging)
+const char *result_str(Result r);
+
+// Reports whether a result indicates success. (Don't just assume that RESULT_OK
+// will always be the only ever success value...)
+bool result_success(Result r);
 
 //------------------------------------------------------------------------------
 // BlockType

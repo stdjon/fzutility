@@ -138,8 +138,8 @@ void wave_test(API::MemoryBlocks &mb, size_t n) {
 void dump_wav(API::MemoryBlocks &mb) {
     API::MemoryObjectPtr obj;
     auto r = mb.unpack(obj);
-    if(r != API::RESULT_OK) {
-        printf("dump_wav: result = %u\n", r);
+    if(!result_success(r)) {
+        printf("dump_wav: result = %s\n", result_str(r));
     }
     auto iter = obj;
     while(iter && (iter->type() != API::BT_WAVE)) {
@@ -175,7 +175,7 @@ int main(int argc, const char **argv) {
     API::MemoryBlocks mb;
     API::BlockLoader bl(filename);
     auto r = bl.load(mb);
-    if(r == API::RESULT_OK) {
+    if(API::result_success(r)) {
         printf("Generic Header:\n");
         printf("file_type = %u\n", mb.file_type());
         if(auto *hdr = mb.header()) {
@@ -199,7 +199,7 @@ int main(int argc, const char **argv) {
             dump_wav(mb);
         }
     } else {
-        printf("Load error: %u\n", r);
+        printf("Load error: %s\n", result_str(r));
     }
     return EXIT_SUCCESS;
 }

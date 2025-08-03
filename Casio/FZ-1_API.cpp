@@ -54,6 +54,24 @@ static void read_value_array(
     }
 }
 
+//------------------------------------------------------------------------------
+
+#define FZ_RESULT_STRING(name_) #name_,
+
+const char *result_str(Result r) {
+    static const char *strings[] = {
+        FZ_EACH_RESULT(FZ_RESULT_STRING)
+    };
+    if(r < RESULT_END_OF_LIST_) {
+        return strings[r];
+    }
+    return "??";
+}
+
+bool result_success(Result r) {
+    return r == RESULT_OK;
+}
+
 
 //------------------------------------------------------------------------------
 // MemoryBlocks
@@ -900,7 +918,7 @@ BlockLoader::BlockLoader(void *storage, size_t size):
 
 Result BlockLoader::load(MemoryBlocks &mb) {
     mb.reset();
-    if(auto r = flag_check(flags_); r != RESULT_OK) {
+    if(auto r = flag_check(flags_); !result_success(r)) {
         return r;
     }
     if(!size_) {
@@ -967,7 +985,7 @@ Result XmlLoader::load(MemoryObjectPtr &objects) {
         voice_name = "voice",
         wave_name = "wave";
     objects.reset();
-    if(auto r = flag_check(flags_); r != RESULT_OK) {
+    if(auto r = flag_check(flags_); !result_success(r)) {
         return r;
     }
     if(!xml_) {
