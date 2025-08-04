@@ -161,7 +161,7 @@ Voice *MemoryBlocks::voice(size_t n) const {
         voice_count = h->voice_count;
     }
     if(n < voice_count) {
-        if(auto *vb = voice_block( bank_count + ((n + 3) / 4) )) {
+        if(auto *vb = voice_block( bank_count + (n / 4) )) {
             return &(*vb)[n % 4];
         }
     }
@@ -173,7 +173,7 @@ Wave *MemoryBlocks::wave(size_t n) const {
         offset = 0,
         wave_block_count = 0;
     if(auto *h = header()) {
-        offset = h->bank_count + h->voice_count;
+        offset = h->bank_count + ((h->voice_count + 3) / 4);
         wave_block_count = h->wave_block_count;
     }
     if(n < wave_block_count) {
@@ -833,7 +833,7 @@ Result MemoryWave::dump_wav(
     TinyWav tw;
     float float_buffer[512];
     int r = tinywav_open_write(
-        &tw, 1, samplerate, TW_INT16, TW_INTERLEAVED, filename.data());
+        &tw, 1, samplerate, TW_FLOAT32, TW_INTERLEAVED, filename.data());
     if(r) {
         return RESULT_WAVE_OPEN_ERROR;
     }
@@ -848,7 +848,7 @@ Result MemoryWave::dump_wav(
         auto *wave = iter->wave();
         assert(wave);
         for(size_t i = 0; i < len; i++) {
-            float_buffer[i] = static_cast<float>(wave->samples[i + offset]);
+            float_buffer[i] = static_cast<float>(wave->samples[i + offset]) / 32768;
         }
 
         int samples= tinywav_write_f(&tw, float_buffer, len);

@@ -154,8 +154,9 @@ void dump_wav(API::MemoryBlocks &mb) {
         printf("no pointer\n");
         return;
     }
-    auto q = ptr->dump_wav("tmp.wav", 0, 0, 1000000);
-    printf("q = %u\n", q);
+    if(auto q = ptr->dump_wav("tmp.wav", 0, 0, 1000000); !result_success(q)) {
+        printf("error = %s\n", API::result_str(q));
+    }
 }
 
 int main(int argc, const char **argv) {
