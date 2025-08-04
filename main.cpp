@@ -178,8 +178,29 @@ void unpack_dump(API::MemoryBlocks &mb, std::string filename) {
     file_extension_replace_or_append(filename, ".fzml");
     API::XmlDumper xd(filename);
     auto r1 = xd.dump(obj);
-    if(!result_success(r)) {
+    if(!result_success(r1)) {
         printf("unpack_dump: dump = %s\n", result_str(r));
+    }
+//------------------------------------------------------------------------------
+    API::MemoryBlocks mb2;
+    auto r2 = API::MemoryObject::pack(obj, mb2, TYPE_FULL);
+    if(!result_success(r2)) {
+        printf("unpack_dump: pack = %s\n", result_str(r2));
+    }
+    if(auto *h = mb2.header()) {
+        auto *h1 = mb.header();
+        if(h->voice_count != h1->voice_count) {
+            printf("lol %u != %u wat\n", h->voice_count, h1->voice_count);
+        }
+        for(size_t i = 0; i < h->voice_count; i++) {
+            printf("%u [%s] == [%s] ?\n", i, mb.voice(i)->name, mb2.voice(i)->name);
+        }
+        if(h->voice_count > 22) {
+            printf("[%s] == [%s] ?\n", mb.voice(18)->name, mb2.voice(18)->name);
+            printf("[%x] == [%x] ?\n", mb.voice(18)->loop_start[0], mb2.voice(18)->loop_start[0]);
+            printf("[%u] == [%u] ?\n", mb.voice(18)->loop_start[0], mb2.voice(18)->loop_start[0]);
+            printf("[%i] == [%i] ?\n", mb.voice(18)->loop_start[0], mb2.voice(18)->loop_start[0]);
+        }
     }
 }
 

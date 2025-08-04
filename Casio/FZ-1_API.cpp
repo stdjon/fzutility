@@ -54,6 +54,7 @@ static void read_value_array(
     }
 }
 
+
 //------------------------------------------------------------------------------
 
 #define FZ_RESULT_STRING(name_) #name_,
@@ -356,6 +357,9 @@ MemoryObjectPtr MemoryObject::insert_before(MemoryObjectPtr obj) {
 }
 
 Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type) {
+    // TODO: this current implementation assumes that the input list is sorted
+    //   (i.e.) (Effect->)Bank(s)->Voice(s)->Wave(s). It will probably break if
+    //   this is not the case.
     out.reset();
     size_t
         n = 0,
@@ -427,15 +431,22 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
         i = 0;
     while(o && i < n) {
         const bool is_voice = o->type() == BT_VOICE;
+        if(!is_voice) {
+            if(voice_index) {
+                voice_index = 0;
+                i++;
+            }
+        }
         size_t index = is_voice ? voice_index : 0;
         if(!o->pack(block + i, index)) {
             return RESULT_BAD_BLOCK_INDEX;
         }
         if(is_voice) {
-            if(!voice_index) {
+            voice_index++;
+            if(voice_index == 4) {
+                voice_index = 0;
                 i++;
             }
-            voice_index = (voice_index + 1) % 4;
         } else {
             if(o->type() != BT_EFFECT) {
                 i++;
