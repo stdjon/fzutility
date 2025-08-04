@@ -857,7 +857,7 @@ Result MemoryWave::dump_wav(
         }
         count -= len;
         offset = 0;
-        iter = iter->next();
+          iter = iter->next();
     }
     tinywav_close_write(&tw);
     return RESULT_OK;
@@ -1101,6 +1101,9 @@ Result XmlDumper::memory_dump(const MemoryObjectPtr objects, size_t *write_size)
     XmlPrinter printer(nullptr, true);
     print(objects, printer);
     size_t copy_size = printer.CStrSize();
+    // Note that in this case we write the copy_size to the output pointer before
+    // making the attempt to copy. This is so the caller will know how bif of a
+    // buffer is needed on the next attempt...
     if(write_size) {
         *write_size = copy_size;
     }

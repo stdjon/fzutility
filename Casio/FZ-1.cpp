@@ -34,4 +34,6 @@ const Voice &VoiceBlockFileHeader::operator[](size_t n) const {
 }
 
 
+#undef RETURN_VOICE
+
 } // Casio::FZ_1
