@@ -7,6 +7,15 @@
 using namespace Casio::FZ_1;
 
 
+void file_extension_replace_or_append(std::string &filename, const std::string &ext) {
+    size_t len = filename.size();
+    if(auto it = filename.rfind('.'); it != len) {
+        filename.replace(it, len - it, ext);
+    } else {
+        filename += ext;
+    }
+}
+
 void block_test(API::MemoryBlocks &mb) {
     size_t n = mb.count();
     printf("%u blocks:\n", n);
@@ -154,12 +163,7 @@ void dump_wav(API::MemoryBlocks &mb, std::string filename) {
         printf("dump_wav: no wave pointer\n");
         return;
     }
-    size_t len = filename.size();
-    if(auto it = filename.rfind('.'); it != len) {
-        filename.replace(it, len - it, ".wav");
-    } else {
-        filename += ".wav";
-    }
+    file_extension_replace_or_append(filename, ".wav");
     if(auto q = ptr->dump_wav(filename, 0, 0, 1000000); !result_success(q)) {
         printf("error = %s\n", API::result_str(q));
     }
@@ -171,12 +175,7 @@ void unpack_dump(API::MemoryBlocks &mb, std::string filename) {
     if(!result_success(r)) {
         printf("unpack_dump: unpack = %s\n", result_str(r));
     }
-    size_t len = filename.size();
-    if(auto it = filename.rfind('.'); it != len) {
-        filename.replace(it, len - it, ".fzml");
-    } else {
-        filename += ".fzml";
-    }
+    file_extension_replace_or_append(filename, ".fzml");
     API::XmlDumper xd(filename);
     auto r1 = xd.dump(obj);
     if(!result_success(r)) {
