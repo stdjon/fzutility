@@ -135,7 +135,7 @@ void wave_test(API::MemoryBlocks &mb, size_t n) {
     }
 }
 
-void dump_wav(API::MemoryBlocks &mb) {
+void dump_wav(API::MemoryBlocks &mb, std::string filename) {
     API::MemoryObjectPtr obj;
     auto r = mb.unpack(obj);
     if(!result_success(r)) {
@@ -146,16 +146,41 @@ void dump_wav(API::MemoryBlocks &mb) {
         iter = iter->next();
     }
     if(!iter) {
-        printf("no waves\n");
+        printf("dump_wav: no wave blocks\n");
         return;
     }
     auto ptr = std::static_pointer_cast<API::MemoryWave>(iter);
     if(!ptr) {
-        printf("no pointer\n");
+        printf("dump_wav: no wave pointer\n");
         return;
     }
-    if(auto q = ptr->dump_wav("tmp.wav", 0, 0, 1000000); !result_success(q)) {
+    size_t len = filename.size();
+    if(auto it = filename.rfind('.'); it != len) {
+        filename.replace(it, len - it, ".wav");
+    } else {
+        filename += ".wav";
+    }
+    if(auto q = ptr->dump_wav(filename, 0, 0, 1000000); !result_success(q)) {
         printf("error = %s\n", API::result_str(q));
+    }
+}
+
+void unpack_dump(API::MemoryBlocks &mb, std::string filename) {
+    API::MemoryObjectPtr obj;
+    auto r = mb.unpack(obj);
+    if(!result_success(r)) {
+        printf("unpack_dump: unpack = %s\n", result_str(r));
+    }
+    size_t len = filename.size();
+    if(auto it = filename.rfind('.'); it != len) {
+        filename.replace(it, len - it, ".fzml");
+    } else {
+        filename += ".fzml";
+    }
+    API::XmlDumper xd(filename);
+    auto r1 = xd.dump(obj);
+    if(!result_success(r)) {
+        printf("unpack_dump: dump = %s\n", result_str(r));
     }
 }
 
@@ -197,7 +222,10 @@ int main(int argc, const char **argv) {
             wave_test(mb, waveblock);
         }
         if(filetype == 'x') {
-            dump_wav(mb);
+            dump_wav(mb, filename);
+        }
+        if(filetype == 'd') {
+            unpack_dump(mb, filename); 
         }
     } else {
         printf("Load error: %s\n", result_str(r));
