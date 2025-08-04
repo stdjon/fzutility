@@ -482,6 +482,10 @@ MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
     bank_.name[12] = 0;
     bank_.name[13] = 0;
 
+    unsigned int index = 0;
+    element.QueryUnsignedAttribute("index", &index);
+    index_ = index;
+
     unsigned int voice_count = 0;
     element.QueryUnsignedAttribute("voice_count", &voice_count);
     bank_.voice_count = voice_count;
@@ -520,6 +524,7 @@ void MemoryBank::print(XmlPrinter &p) {
     size_t voice_count = bank_.voice_count;
     p.OpenElement("bank");
     p.PushAttribute("name", bank_.name);
+    p.PushAttribute("index", index_);
     p.PushAttribute("voice_count", voice_count);
     PRINT_VALUE_ARRAY(midi_hi, voice_count);
     PRINT_VALUE_ARRAY(midi_lo, voice_count);
@@ -644,6 +649,8 @@ MemoryVoice::MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev):
     voice_.name[12] = 0;
     voice_.name[13] = 0;
 
+    read_value(element, "index", index_);
+
     READ_VALUE(data_start);
     READ_VALUE(data_end);
     READ_VALUE(play_start);
@@ -714,6 +721,7 @@ void MemoryVoice::print(XmlPrinter &p) {
 
     p.OpenElement("voice");
     p.PushAttribute("name", voice_.name);
+    p.PushAttribute("index", index_);
     PRINT_VALUE(data_start);
     PRINT_VALUE(data_end);
     PRINT_VALUE(play_start);
@@ -775,6 +783,7 @@ std::shared_ptr<MemoryWave> MemoryWave::create(
 MemoryWave::MemoryWave(Lock, const XmlElement &element, MemoryObjectPtr prev):
     MemoryObject(prev) {
 
+    read_value(element, "index", index_);
     const char
         *text = element.GetText(),
         *current = text;
@@ -800,6 +809,7 @@ bool MemoryWave::pack(Block *block, size_t index) {
 
 void MemoryWave::print(XmlPrinter &p) {
     p.OpenElement("wave");
+    p.PushAttribute("index", index_);
     char buffer[2822] = { '\n' };
     char *ptr = buffer + 1;
 

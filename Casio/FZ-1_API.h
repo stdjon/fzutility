@@ -156,6 +156,7 @@ struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
 
     virtual ~MemoryObject() = default;
     virtual BlockType type() { return BT_NONE; }
+    size_t index() { return index_; }
 
     MemoryObjectPtr prev() { return prev_.lock(); }
     MemoryObjectPtr next() { return next_; }
@@ -178,10 +179,14 @@ protected:
     virtual bool pack(Block *block, size_t index) { return false; }
     virtual void print(XmlPrinter &printer) {}
 
+    size_t index_ = 0;
 
 private:
     void link(const MemoryObjectPtr &next) {
         next_ = next;
+        if(next_->type() == type()) {
+            next_->index_ = index_ + 1;
+        }
     }
 
     std::weak_ptr<MemoryObject> prev_;
