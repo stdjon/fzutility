@@ -482,12 +482,10 @@ MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
     bank_.name[12] = 0;
     bank_.name[13] = 0;
 
-    unsigned int index = 0;
-    element.QueryUnsignedAttribute("index", &index);
-    index_ = index;
+    read_unsigned_value(element, "index", index_);
 
     unsigned int voice_count = 0;
-    element.QueryUnsignedAttribute("voice_count", &voice_count);
+    read_unsigned_value(element, "voice_count", voice_count);
     bank_.voice_count = voice_count;
 
     READ_VALUE_ARRAY(midi_hi, voice_count);
@@ -649,7 +647,7 @@ MemoryVoice::MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev):
     voice_.name[12] = 0;
     voice_.name[13] = 0;
 
-    read_value(element, "index", index_);
+    read_unsigned_value(element, "index", index_);
 
     READ_VALUE(data_start);
     READ_VALUE(data_end);
@@ -783,7 +781,7 @@ std::shared_ptr<MemoryWave> MemoryWave::create(
 MemoryWave::MemoryWave(Lock, const XmlElement &element, MemoryObjectPtr prev):
     MemoryObject(prev) {
 
-    read_value(element, "index", index_);
+    read_unsigned_value(element, "index", index_);
     const char
         *text = element.GetText(),
         *current = text;
