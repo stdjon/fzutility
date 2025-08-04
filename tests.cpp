@@ -75,6 +75,65 @@ T_(empty_loader, {
     CHECK(!mb.wave(100));
 });
 
+T_(bad_filename_loader, {
+    auto bl = API::BlockLoader("nosuch.file");
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_FILE_OPEN_ERROR);
+    CHECK(mb.is_empty());
+    CHECK(!mb);
+    CHECK(mb.file_type() == TYPE_UNKNOWN);
+    CHECK(!mb.header());
+    CHECK(!mb.bank_header());
+    CHECK(!mb.voice_header());
+    CHECK(!mb.bank_header());
+    CHECK(!mb.effect_header());
+    CHECK(!mb.bank_block(0));
+    CHECK(!mb.voice_block(0));
+    CHECK(!mb.effect_block(0));
+    CHECK(!mb.wave_block(0));
+});
+
+T_(bad_memory_loader, {
+    uint8_t mem[1024] = { 0 };
+    auto bl = API::BlockLoader(mem);
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_BAD_HEADER);
+    CHECK(mb.is_empty());
+    CHECK(!mb);
+    CHECK(mb.file_type() == TYPE_UNKNOWN);
+    CHECK(!mb.header());
+    CHECK(!mb.bank_header());
+    CHECK(!mb.voice_header());
+    CHECK(!mb.bank_header());
+    CHECK(!mb.effect_header());
+    CHECK(!mb.bank_block(0));
+    CHECK(!mb.voice_block(0));
+    CHECK(!mb.effect_block(0));
+    CHECK(!mb.wave_block(0));
+});
+
+T_(bad_memory_size_loader, {
+    uint8_t mem[1028] = { 0 };
+    auto bl = API::BlockLoader(mem);
+    API::MemoryBlocks mb;
+    auto r = bl.load(mb);
+    CHECK(r == API::RESULT_BAD_FILE_SIZE);
+    CHECK(mb.is_empty());
+    CHECK(!mb);
+    CHECK(mb.file_type() == TYPE_UNKNOWN);
+    CHECK(!mb.header());
+    CHECK(!mb.bank_header());
+    CHECK(!mb.voice_header());
+    CHECK(!mb.bank_header());
+    CHECK(!mb.effect_header());
+    CHECK(!mb.bank_block(0));
+    CHECK(!mb.voice_block(0));
+    CHECK(!mb.effect_block(0));
+    CHECK(!mb.wave_block(0));
+});
+
 T_(load_bank, {
     auto bl = API::BlockLoader("fz_data/bank.fzb");
     API::MemoryBlocks mb;
