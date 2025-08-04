@@ -337,7 +337,8 @@ template<size_t N>BlockLoader::BlockLoader(uint8_t (&storage)[N]):
 
 struct XmlLoader: Loader {
     XmlLoader(std::string_view filename);
-    XmlLoader(std::unique_ptr<XmlDocument>&& xml);
+    XmlLoader(std::unique_ptr<XmlDocument> &&xml);
+    XmlLoader(const XmlDocument &xml);
     ~XmlLoader();
 
     Result load(MemoryObjectPtr &objects);

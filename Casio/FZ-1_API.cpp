@@ -972,8 +972,13 @@ XmlLoader::XmlLoader(std::string_view filename) {
     }
 }
 
-XmlLoader::XmlLoader(std::unique_ptr<XmlDocument>&& xml):
+XmlLoader::XmlLoader(std::unique_ptr<XmlDocument> &&xml):
     xml_(std::move(xml)) {}
+
+XmlLoader::XmlLoader(const XmlDocument &xml):
+    xml_(std::make_unique<XmlDocument>()) {
+    xml.DeepCopy(xml_.get());
+}
 
 XmlLoader::~XmlLoader() = default;
 
