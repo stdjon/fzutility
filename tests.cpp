@@ -631,7 +631,7 @@ T_(xml_roundtrip_bank, {
     CHECK(mo->type() == API::BT_BANK);
     CHECK(mo->bank());
     check_bank(*mo->bank());
-    auto xd = API::XmlDumper("fz_data/bank.fzml");
+    auto xd = API::XmlDumper("fz_data/bank.fzml", TYPE_BANK);
     auto r3 = xd.dump(mo);
     CHECK(API::result_success(r3));
     API::MemoryObjectPtr mo2;
@@ -660,7 +660,7 @@ T_(xml_roundtrip_full, {
     CHECK(mo->next()->type() == API::BT_VOICE);
     CHECK(mo->next()->voice());
     check_voice(*mo->next()->voice());
-    auto xd = API::XmlDumper("fz_data/full.fzml");
+    auto xd = API::XmlDumper("fz_data/full.fzml", TYPE_FULL);
     auto r3 = xd.dump(mo);
     CHECK(API::result_success(r3));
     API::MemoryObjectPtr mo2;

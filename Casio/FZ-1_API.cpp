@@ -9,6 +9,11 @@
 
 namespace Casio::FZ_1::API {
 
+static const std::string
+    FZ_ML_ROOT_NAME = "fz-ml",
+    FZ_ML_VERSION = "0.1α";
+
+
 struct FileCloser {
     FileCloser(FILE *f): f_(f) {}
     ~FileCloser() { fclose(f_); }
@@ -876,7 +881,7 @@ Result MemoryWave::dump_wav(
         }
         count -= len;
         offset = 0;
-          iter = iter->next();
+        iter = iter->next();
     }
     tinywav_close_write(&tw);
     return RESULT_OK;
@@ -1003,11 +1008,10 @@ XmlLoader::~XmlLoader() = default;
 
 Result XmlLoader::load(MemoryObjectPtr &objects) {
     static const std::string
-        fz_ml_name = "fz-ml",
-        bank_name = "bank",
-        effect_name = "effect",
-        voice_name = "voice",
-        wave_name = "wave";
+        BANK_NAME = "bank",
+        EFFECT_NAME = "effect",
+        VOICE_NAME = "voice",
+        WAVE_NAME = "wave";
     objects.reset();
     if(auto r = flag_check(flags_); !result_success(r)) {
         return r;
@@ -1019,8 +1023,16 @@ Result XmlLoader::load(MemoryObjectPtr &objects) {
     if(!root) {
         return RESULT_XML_MISSING_ROOT;
     }
-    if(fz_ml_name != root->Name()) {
+    if(FZ_ML_ROOT_NAME != root->Name()) {
         return RESULT_XML_UNKNOWN_ROOT_ELEMENT;
+    }
+    auto *attr = root->FindAttribute("version");
+    if(!attr) {
+        return RESULT_XML_MISSING_VERSION;
+    }
+    const char *version = attr->Value();
+    if(FZ_ML_VERSION != version) {
+        return RESULT_XML_UNKNOWN_VERSION;
     }
     auto *element = root->FirstChildElement();
     if(!element) {
@@ -1030,16 +1042,16 @@ Result XmlLoader::load(MemoryObjectPtr &objects) {
         current,
         first;
     while(element) {
-        if(bank_name == element->Name()) {
+        if(BANK_NAME == element->Name()) {
             current = MemoryBank::create(*element, current);
             if(!first) { first = current; }
-        } else if(effect_name == element->Name()) {
+        } else if(EFFECT_NAME == element->Name()) {
             current = MemoryEffect::create(*element, current);
             if(!first) { first = current; }
-        } else if(voice_name == element->Name()) {
+        } else if(VOICE_NAME == element->Name()) {
             current = MemoryVoice::create(*element, current);
             if(!first) { first = current; }
-        } else if(wave_name == element->Name()) {
+        } else if(WAVE_NAME == element->Name()) {
             current = MemoryWave::create(*element, current);
             if(!first) { first = current; }
         } else {
@@ -1126,7 +1138,7 @@ Result XmlDumper::memory_dump(const MemoryObjectPtr objects, size_t *write_size)
     print(objects, printer);
     size_t copy_size = printer.CStrSize();
     // Note that in this case we write the copy_size to the output pointer before
-    // making the attempt to copy. This is so the caller will know how bif of a
+    // making the attempt to copy. This is so the caller will know how big of a
     // buffer is needed on the next attempt...
     if(write_size) {
         *write_size = copy_size;
@@ -1166,7 +1178,9 @@ Result XmlDumper::file_dump(const MemoryObjectPtr objects, size_t *write_size) {
 
 
 void XmlDumper::print(const MemoryObjectPtr objects, XmlPrinter &p) {
-    p.OpenElement("fz-ml");
+    p.OpenElement(FZ_ML_ROOT_NAME.c_str());
+    p.PushAttribute("version", FZ_ML_VERSION.c_str());
+    p.PushAttribute("file_type", file_type_);
     auto o = objects;
     while(o) {
         o->print(p);

@@ -50,8 +50,10 @@ using XmlPrinter = tinyxml2::XMLPrinter;
     _(RESULT_XML_EMPTY) \
     _(RESULT_XML_MISSING_CHILDREN) \
     _(RESULT_XML_MISSING_ROOT) \
+    _(RESULT_XML_MISSING_VERSION) \
     _(RESULT_XML_PARSE_ERROR) \
     _(RESULT_XML_UNKNOWN_ELEMENT) \
+    _(RESULT_XML_UNKNOWN_VERSION) \
     _(RESULT_XML_UNKNOWN_ROOT_ELEMENT) \
      \
     _(RESULT_END_OF_LIST_)
@@ -360,8 +362,7 @@ private:
 struct Dumper {
 protected:
     Dumper(std::string_view filename): filename_(filename) {}
-    Dumper(void *storage, size_t size):
-        destination_(storage), size_(size) {}
+    Dumper(void *storage, size_t size): destination_(storage), size_(size) {}
 
     std::string filename_;
     void *destination_ = nullptr;
@@ -392,9 +393,11 @@ template<size_t N>BlockDumper::BlockDumper(uint8_t (&storage)[N]):
 // XmlDumper
 
 struct XmlDumper: Dumper {
-    XmlDumper(std::string_view filename): Dumper(filename) {}
-    XmlDumper(void *storage, size_t size): Dumper(storage, size) {}
-    template<size_t N>XmlDumper(uint8_t (&storage)[N]);
+    XmlDumper(std::string_view filename, FzFileType file_type):
+        Dumper(filename), file_type_(file_type) {}
+    XmlDumper(void *storage, size_t size, FzFileType file_type):
+    Dumper(storage, size), file_type_(file_type) {}
+    template<size_t N>XmlDumper(uint8_t (&storage)[N], FzFileType file_type);
     ~XmlDumper() = default;
 
     Result dump(const MemoryObjectPtr objects, size_t *write_size = nullptr);
@@ -403,10 +406,12 @@ private:
     Result memory_dump(const MemoryObjectPtr objects, size_t *write_size);
     Result file_dump(const MemoryObjectPtr objects, size_t *write_size);
     void print(const MemoryObjectPtr objects, XmlPrinter &printer);
+
+    FzFileType file_type_ = TYPE_UNKNOWN;
 };
 
-template<size_t N>XmlDumper::XmlDumper(uint8_t (&storage)[N]):
-    XmlDumper(storage, N) {}
+template<size_t N>XmlDumper::XmlDumper(uint8_t (&storage)[N], FzFileType file_type):
+    XmlDumper(storage, N, file_type) {}
 
 
 } //Casio::FZ_1::API

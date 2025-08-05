@@ -176,7 +176,7 @@ void unpack_dump(API::MemoryBlocks &mb, std::string filename) {
         printf("unpack_dump: unpack = %s\n", result_str(r));
     }
     file_extension_replace_or_append(filename, ".fzml");
-    API::XmlDumper xd(filename);
+    API::XmlDumper xd(filename, mb.file_type());
     auto r1 = xd.dump(obj);
     if(!result_success(r1)) {
         printf("unpack_dump: dump = %s\n", result_str(r));
