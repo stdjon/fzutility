@@ -11,7 +11,11 @@ namespace Casio::FZ_1::API {
 
 static const std::string
     FZ_ML_ROOT_NAME = "fz-ml",
-    FZ_ML_VERSION = "0.1α";
+    FZ_ML_VERSION = "0.1α",
+    BANK_TAGNAME = "bank",
+    EFFECT_TAGNAME = "effect",
+    VOICE_TAGNAME = "voice",
+    WAVE_TAGNAME = "wave";
 
 
 struct FileCloser {
@@ -525,7 +529,7 @@ void MemoryBank::print(XmlPrinter &p) {
     } while(0)
 
     size_t voice_count = bank_.voice_count;
-    p.OpenElement("bank");
+    p.OpenElement(BANK_TAGNAME.c_str());
     p.PushAttribute("name", bank_.name);
     p.PushAttribute("index", index_);
     p.PushAttribute("voice_count", voice_count);
@@ -597,7 +601,7 @@ void MemoryEffect::print(XmlPrinter &p) {
 #define PRINT_VALUE(name_) \
     if(effect_.name_) { p.PushAttribute(#name_, effect_.name_); }
 
-    p.OpenElement("effect");
+    p.OpenElement(EFFECT_TAGNAME.c_str());
     PRINT_VALUE(pitchbend_depth);
     PRINT_VALUE(master_volume);
     PRINT_VALUE(sustain_switch);
@@ -722,7 +726,7 @@ void MemoryVoice::print(XmlPrinter &p) {
         p.CloseElement(); \
     } while(0)
 
-    p.OpenElement("voice");
+    p.OpenElement(VOICE_TAGNAME.c_str());
     p.PushAttribute("name", voice_.name);
     p.PushAttribute("index", index_);
     PRINT_VALUE(data_start);
@@ -811,7 +815,7 @@ bool MemoryWave::pack(Block *block, size_t index) {
 }
 
 void MemoryWave::print(XmlPrinter &p) {
-    p.OpenElement("wave");
+    p.OpenElement(WAVE_TAGNAME.c_str());
     p.PushAttribute("index", index_);
     char buffer[2822] = { '\n' };
     char *ptr = buffer + 1;
@@ -1007,11 +1011,6 @@ XmlLoader::XmlLoader(const XmlDocument &xml):
 XmlLoader::~XmlLoader() = default;
 
 Result XmlLoader::load(MemoryObjectPtr &objects) {
-    static const std::string
-        BANK_NAME = "bank",
-        EFFECT_NAME = "effect",
-        VOICE_NAME = "voice",
-        WAVE_NAME = "wave";
     objects.reset();
     if(auto r = flag_check(flags_); !result_success(r)) {
         return r;
@@ -1042,16 +1041,16 @@ Result XmlLoader::load(MemoryObjectPtr &objects) {
         current,
         first;
     while(element) {
-        if(BANK_NAME == element->Name()) {
+        if(BANK_TAGNAME == element->Name()) {
             current = MemoryBank::create(*element, current);
             if(!first) { first = current; }
-        } else if(EFFECT_NAME == element->Name()) {
+        } else if(EFFECT_TAGNAME == element->Name()) {
             current = MemoryEffect::create(*element, current);
             if(!first) { first = current; }
-        } else if(VOICE_NAME == element->Name()) {
+        } else if(VOICE_TAGNAME == element->Name()) {
             current = MemoryVoice::create(*element, current);
             if(!first) { first = current; }
-        } else if(WAVE_NAME == element->Name()) {
+        } else if(WAVE_TAGNAME == element->Name()) {
             current = MemoryWave::create(*element, current);
             if(!first) { first = current; }
         } else {

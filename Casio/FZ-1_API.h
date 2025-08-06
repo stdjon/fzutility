@@ -72,6 +72,7 @@ const char *result_str(Result r);
 // will always be the only ever success value...)
 bool result_success(Result r);
 
+
 //------------------------------------------------------------------------------
 // BlockType
 
