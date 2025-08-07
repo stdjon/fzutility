@@ -35,32 +35,49 @@ static FzFileHeader &header_(void *b){
 
 // read a (signed) integer
 template<typename T>
-static void read_value(const XmlElement &element, const char *name, T &out) {
-    out = element.IntAttribute(name, 0);
+static void read_value(const XmlElement &element, const char *name, T &in) {
+    in = element.IntAttribute(name, 0);
 }
 
 // read an unsigned integer
 template<typename T>
 static void read_unsigned_value(
-    const XmlElement &element, const char *name, T &out) {
-    out = element.UnsignedAttribute(name, 0);
+    const XmlElement &element, const char *name, T &in) {
+    in = element.UnsignedAttribute(name, 0);
 }
 
 // read a comma-separated integer list (e.g. 1, 2, 3) into the members of an array
 template<typename T>
 static void read_value_array(
-    const XmlElement &element, const char *name, size_t count, T *out) {
+    const XmlElement &element, const char *name, size_t count, T *in) {
     if(auto *e = element.FirstChildElement(name)) {
         if(const char *text = e->GetText()) {
             const char *s = text;
             size_t i = 0;
             while(s && (i < count)) {
-                out[i++] = atoll(s);
+                in[i++] = atoll(s);
                 s = strchr(s + 1, ',');
                 if(s) { s++; }
             }
         }
     }
+}
+
+template<typename T>
+void print_value(XmlPrinter &p, const char *name, const T &out) {
+    if(out) {
+        p.PushAttribute(name, out);
+    }
+}
+
+template<typename T>
+void print_value_array(XmlPrinter &p, const char *name, size_t count, const T *out) {
+    p.OpenElement(name);
+    for(size_t i = 0; i < count; i++) {
+        p.PushText(out[i]);
+        if(i < (count - 1)) { p.PushText(", "); }
+    }
+    p.CloseElement();
 }
 
 
@@ -519,14 +536,8 @@ bool MemoryBank::pack(Block *block, size_t index) {
 }
 
 void MemoryBank::print(XmlPrinter &p) {
-#define PRINT_VALUE_ARRAY(name_, count_) do { \
-        p.OpenElement(#name_); \
-        for(size_t i = 0; i < count_; i++) { \
-            p.PushText(bank_.name_[i]); \
-            if(i < (count_ - 1)) { p.PushText(", "); } \
-        } \
-        p.CloseElement(); \
-    } while(0)
+#define PRINT_VALUE_ARRAY(name_, count_) \
+    print_value_array(p, #name_, count_, bank_.name_)
 
     size_t voice_count = bank_.voice_count;
     p.OpenElement(BANK_TAGNAME.c_str());
@@ -599,7 +610,7 @@ bool MemoryEffect::pack(Block *block, size_t index) {
 
 void MemoryEffect::print(XmlPrinter &p) {
 #define PRINT_VALUE(name_) \
-    if(effect_.name_) { p.PushAttribute(#name_, effect_.name_); }
+    print_value(p, #name_, effect_.name_)
 
     p.OpenElement(EFFECT_TAGNAME.c_str());
     PRINT_VALUE(pitchbend_depth);
@@ -716,15 +727,9 @@ bool MemoryVoice::pack(Block *block, size_t index) {
 
 void MemoryVoice::print(XmlPrinter &p) {
 #define PRINT_VALUE(name_) \
-    if(voice_.name_) { p.PushAttribute(#name_, voice_.name_); }
-#define PRINT_VALUE_ARRAY(name_) do { \
-        p.OpenElement(#name_); \
-        for(size_t i = 0; i < 8; i++) { \
-            p.PushText(voice_.name_[i]); \
-            if(i < 7) { p.PushText(", "); } \
-        } \
-        p.CloseElement(); \
-    } while(0)
+    print_value(p, #name_, voice_.name_)
+#define PRINT_VALUE_ARRAY(name_) \
+    print_value_array(p, #name_, 8, voice_.name_)
 
     p.OpenElement(VOICE_TAGNAME.c_str());
     p.PushAttribute("name", voice_.name);
