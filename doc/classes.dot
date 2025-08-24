@@ -1,0 +1,57 @@
+
+
+digraph Studio {
+    fontname="Fantasque Sans Mono Bold"
+    fontsize=24
+    rankdir=TB
+    ranksep=1
+
+    edge [
+        fontname="Fantasque Sans Mono Bold"
+        fontsize=16
+        penwidth=4
+        arrowsize=2
+        len=1
+    ]
+
+    node [
+        fontname="Fantasque Sans Mono Bold"
+        fontsize=20
+        shape=Mrecord
+        fillcolor=gray50
+        penwidth=4
+    ]
+    subgraph {
+        penwidth=0
+
+        block_file_in[label="«block file»\n[.fzb, .fze, .fzf, .fzv]"];
+        block_file_out[label="«block file»\n[.fzb, .fze, .fzf, .fzv]"];
+        fzml_file_in[label="«text file»\n[.fzml]"];
+        fzml_file_out[label="«text file»\n[.fzml]"];
+        wav_file_in[label="«wave file»\n[.wav]"];
+
+
+        BlockDumper[label="Casio::FZ_1::API::BlockDumper"];
+        BlockLoader[label="Casio::FZ_1::API::BlockLoader"];
+        MemoryBlocks[label="Casio::FZ_1::API::MemoryBlocks"];
+        MemoryObject[label="Casio::FZ_1::API::MemoryObject"];
+        MemoryWave[label="Casio::FZ_1::API::MemoryWave"];
+        WavDumper[label="Casio::FZ_1::API::WavDumper"];
+        XmlDumper[label="Casio::FZ_1::API::XmlDumper"];
+        XmlLoader[label="Casio::FZ_1::API::XmlLoader"];
+
+        block_file_out -> BlockLoader [style=dotted];
+        BlockLoader -> MemoryBlocks;
+        MemoryBlocks -> BlockDumper;
+        BlockDumper -> block_file_in [style=dotted];
+        MemoryObject -> MemoryBlocks;
+        MemoryBlocks -> MemoryObject;
+        fzml_file_out -> XmlLoader [style=dotted];
+        XmlLoader -> MemoryObject;
+        MemoryObject -> XmlDumper;
+        XmlDumper -> fzml_file_in [style=dotted];
+        MemoryObject -> MemoryWave [style=dashed];
+        MemoryWave -> WavDumper;
+        WavDumper -> wav_file_in [style=dotted];
+    }
+}

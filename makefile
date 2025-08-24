@@ -1,4 +1,4 @@
-.PHONY: all clean test
+.PHONY: all clean doc doc-clean test
 
 headers:=Casio/FZ-1.h Casio/FZ-1_API.h
 3headers:=3/tinyxml2/tinyxml2.h 3/tinywav/tinywav.h
@@ -9,6 +9,8 @@ cppfiles:=main.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
 
 test_target:=fzutility_tests.exe
 test_cppfiles:=tests.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
+
+doc_targets:=doc/classes.png doc/fz-ml.html
 
 
 all: $(target) $(test_target)
@@ -22,10 +24,20 @@ test: all
 tags: makefile $(cppfiles) $(test_cppfiles) $(3files) $(headers) $(3headers)
 	ctags -R .
 
+doc: $(doc_targets)
+
+doc-clean:
+	rm -rf $(doc_targets)
+
 $(target): makefile $(cppfiles) $(3files) $(headers) $(3headers)
 	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
 $(test_target): makefile $(test_cppfiles) $(3files) $(headers) $(3headers)
 	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
+doc/%.png: doc/%.dot
+	dot -Tpng $< -o$@
+
+doc/%.html: doc/%.md
+	pandoc -f markdown_strict -t html $< -o $@
 
