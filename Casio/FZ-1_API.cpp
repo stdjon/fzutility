@@ -31,7 +31,7 @@ static FzFileHeader &header_(void *b){
 
 
 //------------------------------------------------------------------------------
-// XmlElement read helpers
+// XmlElement read/print helpers
 
 // read a (signed) integer
 template<typename T>
@@ -440,16 +440,17 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
     }
     auto *block = static_cast<UnknownBlock*>(memory);
 
-    auto &h = block->header;
-    h.indicator = FzFileHeader::INDICATOR;
-    h.version = 1;
-    h.file_type = type;
-    h.bank_count = bank_count;
-    h.voice_count = voice_count;
-    h.unused1_ = 0;
-    h.block_count = n;
-    h.wave_block_count = wave_count;
-    h.unused2_ = 0;
+    block->header = {
+        .indicator = FzFileHeader::INDICATOR,
+        .version = 1,
+        .file_type = type,
+        .bank_count = static_cast<uint8_t>(bank_count),
+        .voice_count = static_cast<uint8_t>(voice_count),
+        .unused1_ = 0,
+        .block_count = static_cast<int16_t>(n),
+        .wave_block_count = static_cast<int16_t>(wave_count),
+        .unused2_ = 0,
+    };
 
     o = in;
     size_t
@@ -829,7 +830,7 @@ void MemoryWave::print(XmlPrinter &p) {
         snprintf(ptr, 9, "        ");
         ptr += 8;
         for(size_t j = 0; j < 16; j++) {
-            uint16_t sample = static_cast<uint16_t>(wave_.samples[i * 16 + j]);
+            uint16_t sample = wave_.samples[(i * 16) + j];
             snprintf(ptr, 6, "%04x%c", sample, (j < 15) ? ' ' : '\n' );
             ptr += 5;
         }
@@ -881,7 +882,7 @@ Result MemoryWave::dump_wav(
         auto *wave = iter->wave();
         assert(wave);
         for(size_t i = 0; i < len; i++) {
-            float_buffer[i] = static_cast<float>(wave->samples[i + offset]) / 32768;
+            float_buffer[i] = wave->samples[i + offset] / 32768.f;
         }
 
         int samples= tinywav_write_f(&tw, float_buffer, len);
@@ -1048,19 +1049,16 @@ Result XmlLoader::load(MemoryObjectPtr &objects) {
     while(element) {
         if(BANK_TAGNAME == element->Name()) {
             current = MemoryBank::create(*element, current);
-            if(!first) { first = current; }
         } else if(EFFECT_TAGNAME == element->Name()) {
             current = MemoryEffect::create(*element, current);
-            if(!first) { first = current; }
         } else if(VOICE_TAGNAME == element->Name()) {
             current = MemoryVoice::create(*element, current);
-            if(!first) { first = current; }
         } else if(WAVE_TAGNAME == element->Name()) {
             current = MemoryWave::create(*element, current);
-            if(!first) { first = current; }
         } else {
             return RESULT_XML_UNKNOWN_ELEMENT;
         }
+        if(!first) { first = current; }
         element = element->NextSiblingElement();
     }
     objects = first;
@@ -1148,6 +1146,9 @@ Result XmlDumper::memory_dump(const MemoryObjectPtr objects, size_t *write_size)
         *write_size = copy_size;
     }
     if(size_ < copy_size) {
+        // yielding the truncated output is probably less of a performance hit
+        // than re-running the XmlPrinter, so perhaps it's useful to some users...
+        memcpy(destination_, printer.CStr(), size_);
         return RESULT_MEMORY_TOO_SMALL;
     }
     memcpy(destination_, printer.CStr(), copy_size);

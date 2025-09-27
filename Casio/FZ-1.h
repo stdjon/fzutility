@@ -67,7 +67,7 @@ static_assert(sizeof(BankBlock) == 1024,
    "Casio FZ-1 BankBlock struct should be 1024 bytes");
 
 struct BankBlockFileHeader: Block, Bank {
-    uint8_t pad_[1000 - sizeof(Bank)] = { 0 };
+    uint8_t pad1_[1000 - sizeof(Bank)] = { 0 };
     FzFileHeader header;
     uint8_t pad2_[24 - sizeof(FzFileHeader)] = { 0 };
 };
@@ -234,17 +234,17 @@ struct EffectPad1_ {
    uint8_t pad_[960] = { 0 };
 };
 
-struct EffectPad_: EffectPad1_, Effect {};
-static_assert(sizeof(EffectPad_) == 984,
-   "Casio FZ-1 EffectPad_ struct should be 984 bytes");
+struct EffectPad2_: EffectPad1_, Effect {};
+static_assert(sizeof(EffectPad2_) == 984,
+   "Casio FZ-1 EffectPad2_ struct should be 984 bytes");
 
-struct EffectBlock: Block, EffectPad_ {
-    uint8_t pad_[1024 - sizeof(EffectPad_)] = { 0 };
+struct EffectBlock: Block, EffectPad2_ {
+    uint8_t pad_[1024 - sizeof(EffectPad2_)] = { 0 };
 };
 static_assert(sizeof(EffectBlock) == 1024,
    "Casio FZ-1 EffectBlock struct should be 1024 bytes");
 
-struct EffectBlockFileHeader: Block, EffectPad_ {
+struct EffectBlockFileHeader: Block, EffectPad2_ {
     uint8_t pad1_[16] = { 0 };
     FzFileHeader header;
     uint8_t pad2_[24 - sizeof(FzFileHeader)] = { 0 };
@@ -269,7 +269,7 @@ static_assert(sizeof(WaveBlock) == 1024,
 
 // used internally: represents an as-yet unparsed block
 struct UnknownBlock: Block {
-    uint8_t pad_[1000] = { 0 };
+    uint8_t pad1_[1000] = { 0 };
     FzFileHeader header;
     uint8_t pad2_[24 - sizeof(FzFileHeader)] = { 0 };
 };

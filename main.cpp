@@ -181,7 +181,7 @@ void unpack_dump(API::MemoryBlocks &mb, std::string filename) {
     if(!result_success(r1)) {
         printf("unpack_dump: dump = %s\n", result_str(r));
     }
-//------------------------------------------------------------------------------
+
     API::MemoryBlocks mb2;
     auto r2 = API::MemoryObject::pack(obj, mb2, TYPE_FULL);
     if(!result_success(r2)) {

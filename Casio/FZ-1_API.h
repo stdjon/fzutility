@@ -112,6 +112,7 @@ struct MemoryBlocks {
     // Access banks/voices/waves by index: a bank address will usually match its
     // corresponding block but multiple voices can coexist inside a VoiceBlock,
     // and Waves are usually found after a non-zero amount of bank/voice blocks
+    // so there will not be 1:1 correspondences in those cases.
     Bank *bank(size_t n) const;
     Voice *voice(size_t n) const;
     Wave *wave(size_t n) const;
@@ -153,6 +154,14 @@ private:
 // Models independent Banks, Voices and Waves outside of a Block file array.
 // These can be unpacked from MemoryBlocks, manipulated and repacked (or data can
 // be saved in .xml or .wav file formats).
+// NB: a list of MemoryObjects is held strongly from the head of the list, so if
+// only one reference exists, this will result in objects being deleted if the
+// reference it is advanced (via e.g. o = o->next();).
+// This is a safer alternative:
+//    MemoryObject first = ...; // permanent link to initial object
+//    for(auto o = first; o; o = o->next()) {
+//        ... // process each object 'o' leaving 'first' untouched
+//    }
 struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
     template<typename T, typename U>
     static auto create(const U &u, MemoryObjectPtr prev);
@@ -173,11 +182,15 @@ struct MemoryObject: std::enable_shared_from_this<MemoryObject> {
     virtual Voice *voice() { return nullptr; }
     virtual Wave *wave() { return nullptr; }
 
+    // Pack memory object list back into a contiguous array of blocks
     static Result pack(
         MemoryObjectPtr in, MemoryBlocks &out, FzFileType type = TYPE_FULL);
 
 protected:
+    // This restricts access of derived class constructors (which must be public
+    // so that std::make_shared<T>() can access them).
     struct Lock {};
+
     MemoryObject(MemoryObjectPtr prev): prev_(prev) {}
     virtual bool pack(Block *block, size_t index) { return false; }
     virtual void print(XmlPrinter &printer) {}
