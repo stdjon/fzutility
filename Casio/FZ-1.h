@@ -5,6 +5,7 @@
 //  - "CASIO FZ DATA TRANSFERS" by Jeff McClintock
 //  - "CASIO DIGITAL SAMPLING KEYBOARD MODEL FZ-1 DATA STRUCTURES" by T. Sasaki
 
+#include <stddef.h>
 #include <stdint.h>
 
 namespace Casio::FZ_1 {

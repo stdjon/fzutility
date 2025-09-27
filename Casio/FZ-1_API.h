@@ -3,6 +3,8 @@
 
 #include "Casio/FZ-1.h"
 #include <memory>
+#include <string>
+#include <string_view>
 
 namespace tinyxml2 {
 class XMLDocument;
