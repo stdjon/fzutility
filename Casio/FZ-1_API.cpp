@@ -222,7 +222,7 @@ char MemoryBlocks::block_type_as_char(size_t n) const {
         case BT_EFFECT: return 'e';
         case BT_VOICE: return 'v';
         case BT_WAVE: return 'w';
-        default: [[fallthrough]]
+        default: [[fallthrough]];
         case BT_NONE: return '_';
     }
 }
@@ -415,7 +415,8 @@ Result MemoryObject::pack(MemoryObjectPtr in, MemoryBlocks &out, FzFileType type
                 n++;
                 break;
             }
-            default: [[fallthrough]]
+            default:
+                [[fallthrough]];
             case BT_NONE: {
                 return RESULT_BAD_BLOCK;
             }
@@ -944,7 +945,7 @@ BlockLoader::BlockLoader(std::unique_ptr<uint8_t[]>&& storage, size_t size):
     storage_(std::move(storage)),
     size_(size) {}
 
-BlockLoader::BlockLoader(void *storage, size_t size):
+BlockLoader::BlockLoader(const void *storage, size_t size):
     storage_(std::make_unique<uint8_t[]>(size)),
     size_(size) {
     memcpy(storage_.get(), storage, size);

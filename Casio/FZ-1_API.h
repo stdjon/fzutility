@@ -340,8 +340,8 @@ protected:
 struct BlockLoader: Loader {
     BlockLoader(std::string_view filename);
     BlockLoader(std::unique_ptr<uint8_t[]>&& storage, size_t size);
-    BlockLoader(void *storage, size_t size);
-    template<size_t N>BlockLoader(uint8_t (&storage)[N]);
+    BlockLoader(const void *storage, size_t size);
+    template<size_t N>BlockLoader(const uint8_t (&storage)[N]);
 
     Result load(MemoryBlocks &blocks);
 
@@ -351,7 +351,7 @@ private:
     uint8_t flags_ = 0;
 };
 
-template<size_t N>BlockLoader::BlockLoader(uint8_t (&storage)[N]):
+template<size_t N>BlockLoader::BlockLoader(const uint8_t (&storage)[N]):
     BlockLoader(storage, N) {}
 
 
