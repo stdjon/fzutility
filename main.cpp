@@ -2,253 +2,210 @@
 #include "Casio/FZ-1_API.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <initializer_list>
 #include <string>
 
 using namespace Casio::FZ_1;
 
 
-void file_extension_replace_or_append(std::string &filename, const std::string &ext) {
-    size_t len = filename.size();
-    if(auto it = filename.rfind('.'); it != len) {
-        filename.replace(it, len - it, ext);
+//------------------------------------------------------------------------------
+
+bool string_matches(const std::string &sa, const std::string &sb) {
+    return std::equal(sa.begin(), sa.end(), sb.begin(), sb.end(),
+        [](unsigned char ca, unsigned char cb) {
+            return std::tolower(ca) == std::tolower(cb);
+        });
+}
+
+bool string_matches(
+    const std::string &str, std::initializer_list<std::string> strs) {
+    for(auto it = strs.begin(); it != strs.end(); it++) {
+        if(string_matches(str, *it)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool file_extension_matches(
+    const std::string &ext, std::initializer_list<std::string> exts) {
+    return string_matches(ext, exts);
+}
+
+std::string file_extension_find(const std::string filename) {
+    std::string ext;
+    if(!filename.empty()) {
+        if(auto it = filename.rfind('.'); it != std::string::npos) {
+            ext = filename.substr(it);
+        }
+    }
+    return ext;
+}
+
+void file_extension_replace_or_append(
+    std::string &filename, const std::string &ext) {
+    if(!filename.empty()) {
+        if(auto it = filename.rfind('.'); it != std::string::npos) {
+            size_t len = filename.size();
+            filename.replace(it, len - it, ext);
+        } else {
+            filename += ext;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+
+FzFileType extension_to_file_type(const std::string &ext) {
+    if(file_extension_matches(ext, { ".fzb" })) {
+        return TYPE_BANK;
+    } else if(file_extension_matches(ext, { ".fze" })) {
+        return TYPE_EFFECT;
+    } else if(file_extension_matches(ext, { ".fzf" })) {
+        return TYPE_FULL;
+    } else if(file_extension_matches(ext, { ".fzv" })) {
+        return TYPE_VOICE;
+    }
+    return TYPE_UNKNOWN;
+}
+
+//------------------------------------------------------------------------------
+
+struct Args {
+    std::string
+        option,
+        first,
+        second;
+};
+
+[[noreturn]] void usage() {
+    printf("Usage:\n\n"
+        "  fzutility ‹input› ‹output›\n"
+        "    Convert binary files to FZML (or vice versa).\n"
+        "  fzutility -w ‹range› ‹input›\n"
+        "    Extract wav data from binary or FZML files.\n"
+        "  ...\n"
+        );
+    exit(EXIT_SUCCESS);
+}
+
+[[noreturn]] void error(API::Result result) {
+    printf("Error: %s\n", API::result_str(result));
+    exit(EXIT_FAILURE);
+}
+
+bool parse_args(int argc, const char **argv, Args &args) {
+    if(argv[1][0] == '-') {
+        switch(argc) {
+            default:
+                [[fallthrough]];
+            case 4:
+                args.second = argv[3];
+                [[fallthrough]];
+            case 3:
+                args.first = argv[2];
+                [[fallthrough]];
+            case 2:
+                args.option = argv[1] + 1;
+                break;
+        }
     } else {
-        filename += ext;
+        switch(argc) {
+            default:
+                [[fallthrough]];
+            case 3:
+                args.second = argv[2];
+                [[fallthrough]];
+            case 2:
+                args.first = argv[1];
+                break;
+        }
     }
+    return true;
 }
 
-void block_test(API::MemoryBlocks &mb) {
-    size_t n = mb.count();
-    printf("%u blocks:\n", n);
-    size_t
-        bank = 0,
-        voice = 0,
-        wave = 0,
-        voice_count = mb.header()->voice_count;
-    for(size_t i = 0; i < n; i++) {
-        if(auto *bank_block = mb.bank_block(i)) {
-            printf("= bank %u: \"%s\"\n", bank++, bank_block->name);
+int normal_operation(const Args &args) {
+    auto ext = file_extension_find(args.first);
+    if(file_extension_matches(ext, { ".fzml" })) {
+        printf("XML -> BIN\n");
+        API::MemoryBlocks blocks;
+        API::MemoryObjectPtr obj;
+        API::XmlLoader loader(args.first);
+        API::BlockDumper dumper(args.second);
+        auto result = loader.load(obj);
+        if(!API::result_success(result)) {
+            error(result);
         }
-        if(mb.voice_block(i)) {
-            size_t q = voice_count > 4 ? 4 : voice_count;
-            printf("= voice %u: (%u)\n", voice++, q);
-            voice_count -= q;
+        result = API::MemoryObject::pack(obj, blocks);
+        if(!API::result_success(result)) {
+            error(result);
         }
-        if(mb.effect_block(i))  {
-            printf("= (effect_block)\n");
+        result = dumper.dump(blocks);
+        if(!API::result_success(result)) {
+            error(result);
         }
-        if(mb.wave_block(i)) {
-            if(!wave++) {
-                printf("= wave(s): .");
-            } else {
-                putchar('.');
-            }
+        printf("Success!\n");
+        return EXIT_SUCCESS;
+    } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
+        printf("BIN -> XML\n");
+        API::MemoryBlocks blocks;
+        API::MemoryObjectPtr obj;
+        API::BlockLoader loader(args.first);
+        API::XmlDumper dumper(args.second, extension_to_file_type(ext));
+        API::Result result = loader.load(blocks);
+        if(!API::result_success(result)) {
+            error(result);
         }
+        result = blocks.unpack(obj);
+        if(!API::result_success(result)) {
+            error(result);
+        }
+        result = dumper.dump(obj);
+        if(!API::result_success(result)) {
+            error(result);
+        }
+        printf("Success!\n");
+        return EXIT_SUCCESS;
     }
-    if(wave) {
-        putchar('\n');
-    }
+    printf("Unknown file extension.\n");
+    return EXIT_FAILURE;
 }
 
-void bank_test(API::MemoryBlocks &mb) {
-    size_t n = mb.header()->bank_count;
-    printf("%u banks:\n", n);
-    for(size_t i = 0; i < n; i++) {
-        if(auto *bank = mb.bank(i)) {
-            printf("+ bank %u: \"%s\"\n", i, bank->name);
-        }
+int special_operation(const Args &args) {
+    if(string_matches(args.option, { "?", "h", "help", "-help" })) {
+        usage();
     }
-}
-
-void voice_test(API::MemoryBlocks &mb) {
-    size_t n = mb.header()->voice_count;
-    printf("%u voices:\n", n);
-    for(size_t i = 0; i < n; i++) {
-        if(auto *voice = mb.voice(i)) {
-            printf("_ voice %u: \"%s\"\n", i, voice->name);
-        }
-    }
-}
-
-void header_test(API::MemoryBlocks &mb, char filetype) {
-    switch(filetype) {
-        default: break;
-        case 'b': {
-            BankBlockFileHeader *h = mb.bank_header();
-            printf("BankBlockFileHeader = %p\n", h);
-            break;
-        }
-        case 'e': {
-            EffectBlockFileHeader *h = mb.effect_header();
-            printf("EffectBlockFileHeader = %p\n", h);
-            break;
-        }
-        case 'f': {
-            BankBlockFileHeader *bh = mb.bank_header();
-            EffectBlockFileHeader *eh = mb.effect_header();
-            VoiceBlockFileHeader *vh = mb.voice_header();
-            printf("{Bank|Effect|Voice}BlockFileHeader = {%p|%p|%p}\n", bh, eh, vh);
-            break;
-        }
-        case 'v': {
-            VoiceBlockFileHeader *h = mb.voice_header();
-            printf("VoiceBlockFileHeader = %p\n", h);
-            break;
-        }
-    }
-}
-
-void effect_test(API::MemoryBlocks &mb) {
-    for(int16_t i = 0; i < mb.header()->block_count; i++) {
-        if(EffectBlock *eb = mb.effect_block(i)) {
-            printf("EffectBlock (%u):\n", i);
-            printf(". pitchbend_depth = %i\n", eb->pitchbend_depth);
-            printf(". master_volume = %i\n", eb->master_volume);
-            printf(". sustain_switch = %i\n", eb->sustain_switch);
-            printf(". modulation_lfo_pitch = %i\n", eb->modulation_lfo_pitch);
-            printf(". modulation_lfo_amplitude = %i\n", eb->modulation_lfo_amplitude);
-            printf(". modulation_lfo_filter = %i\n", eb->modulation_lfo_filter);
-            printf(". modulation_lfo_filter_q = %i\n", eb->modulation_lfo_filter_q);
-            printf(". modulation_filter = %i\n", eb->modulation_filter);
-            printf(". modulation_amplitude = %i\n", eb->modulation_amplitude);
-            printf(". modulation_filter_q = %i\n", eb->modulation_filter_q);
-            printf(". footvolume_lfo_pitch = %i\n", eb->footvolume_lfo_pitch);
-            printf(". footvolume_lfo_amplitude = %i\n", eb->footvolume_lfo_amplitude);
-            printf(". footvolume_lfo_filter = %i\n", eb->footvolume_lfo_filter);
-            printf(". footvolume_lfo_filter_q = %i\n", eb->footvolume_lfo_filter_q);
-            printf(". footvolume_amplitude = %i\n", eb->footvolume_amplitude);
-            printf(". footvolume_filter = %i\n", eb->footvolume_filter);
-            printf(". footvolume_filter_q = %i\n", eb->footvolume_filter_q);
-            printf(". aftertouch_lfo_pitch = %i\n", eb->aftertouch_lfo_pitch);
-            printf(". aftertouch_lfo_amplitude = %i\n", eb->aftertouch_lfo_amplitude);
-            printf(". aftertouch_lfo_filter = %i\n", eb->aftertouch_lfo_filter);
-            printf(". aftertouch_lfo_filter_q = %i\n", eb->aftertouch_lfo_filter_q);
-            printf(". aftertouch_amplitude = %i\n", eb->aftertouch_amplitude);
-            printf(". aftertouch_filter = %i\n", eb->aftertouch_filter);
-            printf(". aftertouch_filter_q = %i\n", eb->aftertouch_filter_q);
-        }
-    }
-}
-
-void wave_test(API::MemoryBlocks &mb, size_t n) {
-    if(Wave *w = mb.wave(n)) {
-        printf("wave(%u):\n", n);
-        for(size_t i = 0; i < 32; i++) {
-            for(size_t j = 0; j < 16; j++) {
-                if(!j) {
-                    printf("' ");
-                }
-                printf("%04x ", static_cast<uint16_t>(w->samples[i * 16 + j]));
-            }
-            putchar('\n');
-        }
-    }
-}
-
-void dump_wav(API::MemoryBlocks &mb, std::string filename) {
-    API::MemoryObjectPtr obj;
-    auto r = mb.unpack(obj);
-    if(!result_success(r)) {
-        printf("dump_wav: result = %s\n", result_str(r));
-    }
-    auto iter = obj;
-    while(iter && (iter->type() != API::BT_WAVE)) {
-        iter = iter->next();
-    }
-    if(!iter) {
-        printf("dump_wav: no wave blocks\n");
-        return;
-    }
-    auto ptr = std::static_pointer_cast<API::MemoryWave>(iter);
-    if(!ptr) {
-        printf("dump_wav: no wave pointer\n");
-        return;
-    }
-    file_extension_replace_or_append(filename, ".wav");
-    if(auto q = ptr->dump_wav(filename, 0, 0, 1000000); !result_success(q)) {
-        printf("error = %s\n", API::result_str(q));
-    }
-}
-
-void unpack_dump(API::MemoryBlocks &mb, std::string filename) {
-    API::MemoryObjectPtr obj;
-    auto r = mb.unpack(obj);
-    if(!result_success(r)) {
-        printf("unpack_dump: unpack = %s\n", result_str(r));
-    }
-    file_extension_replace_or_append(filename, ".fzml");
-    API::XmlDumper xd(filename, mb.file_type());
-    auto r1 = xd.dump(obj);
-    if(!result_success(r1)) {
-        printf("unpack_dump: dump = %s\n", result_str(r));
-    }
-
-    API::MemoryBlocks mb2;
-    auto r2 = API::MemoryObject::pack(obj, mb2, TYPE_FULL);
-    if(!result_success(r2)) {
-        printf("unpack_dump: pack = %s\n", result_str(r2));
-    }
-    if(auto *h = mb2.header()) {
-        auto *h1 = mb.header();
-        if(h->voice_count != h1->voice_count) {
-            printf("lol %u != %u wat\n", h->voice_count, h1->voice_count);
-        }
-        for(size_t i = 0; i < h->voice_count; i++) {
-            printf("%u [%s] == [%s] ?\n", i, mb.voice(i)->name, mb2.voice(i)->name);
-        }
-        if(h->voice_count > 22) {
-            printf("[%s] == [%s] ?\n", mb.voice(18)->name, mb2.voice(18)->name);
-            printf("[%x] == [%x] ?\n", mb.voice(18)->loop_start[0], mb2.voice(18)->loop_start[0]);
-            printf("[%u] == [%u] ?\n", mb.voice(18)->loop_start[0], mb2.voice(18)->loop_start[0]);
-            printf("[%i] == [%i] ?\n", mb.voice(18)->loop_start[0], mb2.voice(18)->loop_start[0]);
-        }
-    }
+    return EXIT_FAILURE;
 }
 
 int main(int argc, const char **argv) {
-    std::string filename{ "fz_data\\bank.fzb" };
-    char filetype = 'b';
-    size_t waveblock = 0;
-    if(argc > 1) {
-        filename = std::string{ argv[1] };
-    }
-    if(argc > 2) {
-        filetype = argv[2][0];
-        if((filetype == 'w') && argv[2][1]) {
-            waveblock = atoi(argv[2] + 1);
-        }
+    Args args;
+    int result = EXIT_SUCCESS;
+
+    if(argc < 2) {
+        usage();
     }
 
-    API::MemoryBlocks mb;
-    API::BlockLoader bl(filename);
-    auto r = bl.load(mb);
-    if(API::result_success(r)) {
-        printf("Generic Header:\n");
-        printf("file_type = %u\n", mb.file_type());
-        if(auto *hdr = mb.header()) {
-            printf("- version = %u\n", hdr->version);
-            printf("- bank_count = %u\n", hdr->bank_count);
-            printf("- voice_count = %u\n", hdr->voice_count);
-            printf("- block_count = %u\n", hdr->block_count);
-            printf("- wave_block_count = %u\n", hdr->wave_block_count);
-        } else {
-            printf("- No header?!\n");
-        }
-        block_test(mb);
-        bank_test(mb);
-        voice_test(mb);
-        header_test(mb, filetype);
-        effect_test(mb);
-        if(filetype == 'w') {
-            wave_test(mb, waveblock);
-        }
-        if(filetype == 'x') {
-            dump_wav(mb, filename);
-        }
-        if(filetype == 'd') {
-            unpack_dump(mb, filename); 
-        }
-    } else {
-        printf("Load error: %s\n", result_str(r));
+    auto ok = parse_args(argc, argv, args);
+#if 0
+    printf(
+        "ok = %u\n"
+        "args.option = %s\n"
+        "args.first = %s\n"
+        "args.second = %s\n",
+        ok, args.option.c_str(), args.first.c_str(), args.second.c_str());
+#endif
+
+    if(!ok) {
+        printf("Unknown option: use -? or -help for assistance");
+        return EXIT_FAILURE;
     }
-    return EXIT_SUCCESS;
+
+    if(args.option.empty()) {
+        result = normal_operation(args);
+    } else {
+        result = special_operation(args);
+    }
+
+    return result;
 }
