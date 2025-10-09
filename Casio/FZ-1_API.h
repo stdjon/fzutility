@@ -412,7 +412,7 @@ struct XmlDumper: Dumper {
     XmlDumper(std::string_view filename, FzFileType file_type):
         Dumper(filename), file_type_(file_type) {}
     XmlDumper(void *storage, size_t size, FzFileType file_type):
-    Dumper(storage, size), file_type_(file_type) {}
+        Dumper(storage, size), file_type_(file_type) {}
     template<size_t N>XmlDumper(uint8_t (&storage)[N], FzFileType file_type);
     ~XmlDumper() = default;
 
