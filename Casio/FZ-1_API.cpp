@@ -505,7 +505,6 @@ MemoryBank::MemoryBank(Lock, const XmlElement &element, MemoryObjectPtr prev):
 
     const char *name = nullptr;
     element.QueryStringAttribute("name", &name);
-    size_t len = strlen(name);
     memcpy(bank_.name, name, 14);
     bank_.name[12] = 0;
     bank_.name[13] = 0;
@@ -664,7 +663,6 @@ MemoryVoice::MemoryVoice(Lock, const XmlElement &element, MemoryObjectPtr prev):
 
     const char *name = nullptr;
     element.QueryStringAttribute("name", &name);
-    size_t len = strlen(name);
     memcpy(voice_.name, name, 14);
     voice_.name[12] = 0;
     voice_.name[13] = 0;
@@ -886,8 +884,8 @@ Result MemoryWave::dump_wav(
             float_buffer[i] = wave->samples[i + offset] / 32768.f;
         }
 
-        int samples= tinywav_write_f(&tw, float_buffer, len);
-        if(samples != len) {
+        int samples = tinywav_write_f(&tw, float_buffer, len);
+        if(samples != static_cast<int>(len)) {
             return RESULT_WAVE_WRITE_ERROR;
         }
         count -= len;
@@ -969,7 +967,7 @@ Result BlockLoader::load(MemoryBlocks &mb) {
     if(h.version != 1) {
         return RESULT_BAD_FILE_VERSION;
     }
-    size_t blocks = size_ / 1024;
+    int16_t blocks = size_ / 1024;
     if(blocks != h.block_count) {
         return RESULT_BAD_BLOCK_COUNT;
     }

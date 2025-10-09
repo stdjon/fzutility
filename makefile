@@ -12,6 +12,7 @@ test_cppfiles:=tests.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
 
 doc_targets:=doc/classes.png doc/fz-ml.html
 
+CPPFLAGS:=-g -std=c++17 -Werror -Wall -Wno-format -I .
 
 all: $(target) $(test_target)
 
@@ -30,10 +31,10 @@ doc-clean:
 	rm -rf $(doc_targets)
 
 $(target): makefile $(cppfiles) $(3files) $(headers) $(3headers)
-	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
+	g++ $(CPPFLAGS) $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
 $(test_target): makefile $(test_cppfiles) $(3files) $(headers) $(3headers)
-	g++ -g -std=c++17 -I . $(filter %.cpp,$^) $(filter %.c,$^) -o $@
+	g++ $(CPPFLAGS) $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
 doc/%.png: doc/%.dot
 	dot -Tpng $< -o$@

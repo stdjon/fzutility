@@ -28,15 +28,15 @@ void block_test(API::MemoryBlocks &mb) {
         if(auto *bank_block = mb.bank_block(i)) {
             printf("= bank %u: \"%s\"\n", bank++, bank_block->name);
         }
-        if(auto *voice_block = mb.voice_block(i)) {
+        if(mb.voice_block(i)) {
             size_t q = voice_count > 4 ? 4 : voice_count;
             printf("= voice %u: (%u)\n", voice++, q);
             voice_count -= q;
         }
-        if(auto *effect_block = mb.effect_block(i))  {
+        if(mb.effect_block(i))  {
             printf("= (effect_block)\n");
         }
-        if(auto *wave_block = mb.wave_block(i)) {
+        if(mb.wave_block(i)) {
             if(!wave++) {
                 printf("= wave(s): .");
             } else {
@@ -98,7 +98,7 @@ void header_test(API::MemoryBlocks &mb, char filetype) {
 }
 
 void effect_test(API::MemoryBlocks &mb) {
-    for(size_t i = 0; i < mb.header()->block_count; i++) {
+    for(int16_t i = 0; i < mb.header()->block_count; i++) {
         if(EffectBlock *eb = mb.effect_block(i)) {
             printf("EffectBlock (%u):\n", i);
             printf(". pitchbend_depth = %i\n", eb->pitchbend_depth);
