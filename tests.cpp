@@ -219,9 +219,9 @@ T_(load_effect, {
 
     EffectBlock *effect_block = mb.effect_block(0);
     CHECK(effect_block);
-    CHECK(effect_block->pitchbend_depth = 24);
-    CHECK(effect_block->modulation_lfo_pitch = 64);
-    CHECK(effect_block->footvolume_amplitude = 64);
+    CHECK(effect_block->pitchbend_depth == 24);
+    CHECK(effect_block->modulation_lfo_pitch == 64);
+    CHECK(effect_block->footvolume_amplitude == 64);
 
     EffectBlockFileHeader *effect_header = mb.effect_header();
     CHECK(effect_header);
@@ -232,9 +232,9 @@ T_(load_effect, {
     CHECK(effect_header->header.voice_count == 0);
     CHECK(effect_header->header.block_count == 1);
     CHECK(effect_header->header.wave_block_count == 0);
-    CHECK(effect_header->pitchbend_depth = 24);
-    CHECK(effect_header->modulation_lfo_pitch = 64);
-    CHECK(effect_header->footvolume_amplitude = 64);
+    CHECK(effect_header->pitchbend_depth == 24);
+    CHECK(effect_header->modulation_lfo_pitch == 64);
+    CHECK(effect_header->footvolume_amplitude == 64);
 });
 
 T_(load_full, {
@@ -275,9 +275,9 @@ T_(load_full, {
     CHECK(effect_header->header.voice_count == 1);
     CHECK(effect_header->header.block_count == 5);
     CHECK(effect_header->header.wave_block_count == 4);
-    CHECK(effect_header->pitchbend_depth = 24);
-    CHECK(effect_header->modulation_lfo_pitch = 64);
-    CHECK(effect_header->footvolume_amplitude = 64);
+    CHECK(effect_header->pitchbend_depth == 24);
+    CHECK(effect_header->modulation_lfo_pitch == 64);
+    CHECK(effect_header->footvolume_amplitude == 64);
 
     VoiceBlock *voice_block = mb.voice_block(0);
     CHECK(voice_block);
@@ -354,7 +354,7 @@ T_(load_dump_load, {
     auto bd1 = API::BlockDumper(memory);
     auto r2 = bd1.dump(mb1, &bytes);
     CHECK(API::result_success(r2));
-    CHECK(bytes = 5 * 1024);
+    CHECK(bytes == 5 * 1024);
 
     auto bl2 = API::BlockLoader(memory);
     API::MemoryBlocks mb2;
@@ -368,7 +368,7 @@ T_(load_dump_load, {
     auto bd2 = API::BlockDumper("fz_data/tmp");
     auto r4 = bd2.dump(mb1, &bytes);
     CHECK(API::result_success(r4));
-    CHECK(bytes = 5 * 1024);
+    CHECK(bytes == 5 * 1024);
 
     auto bl3 = API::BlockLoader("fz_data/tmp");
     remove("fz_data/tmp");
