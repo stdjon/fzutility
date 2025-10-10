@@ -1,6 +1,16 @@
-## Outline of a FZ-ML document (`.fzml` file)
+<style>
+    body{
+        font-family: "Georgia", "Times New Roman";
+        color: #dfdfdf;
+        background: #221100;
+        code {
+            color: #9f9fff;
+        }
+    }
+</style>
+## Outline of an FZ-ML document (`.fzml` file)
 
-A FZ-ML document is intended to represent performance data from a Casio FZ-1 sampler. This data is obtained by analyzing existing MIDI dump files (with extensions `.fzb`, `.fbe`, `.fzf` or `.fzv`). These files typically hold a number of bank, voice and wave blocks corresponding to a the type of dump file in question. An effect block may also be included. An FZ-ML document will therefore contain data that corresponds to the source file (and can even be used to reconstruct the original (or modified) `.fz[befv]` file).
+An FZ-ML document is intended to represent performance data from a Casio FZ-1 sampler in a human-readable and/or manipulable format. This data is obtained by analyzing existing MIDI dump files (with extensions `.fzb`, `.fbe`, `.fzf` or `.fzv`). These files typically hold a number of bank, voice and wave blocks corresponding to a the type of dump file in question. An effect block may also be included. An FZ-ML document will therefore contain data that corresponds to the originating binary file (and can even be used to reconstruct the original (or modified) `.fz[befv]` file if desired).
 
 ### The Root Node
 
@@ -123,6 +133,8 @@ Voices also contain sub-nodes, each of which will contain a comma-separated list
 
 ### `<wave>` Nodes
 
-Each Wave node has a single `index` attribute to indicate its place in the list of wave nodes/blocks.
-A `<wave>` node consists of 512 samples stored as 2-byte (16-bit) signed values. The sampledata is written out as four hexadecimal characters for each sample followed by whitespace: 32 rows of 16 samples.
-When reading in wave data, a more permissive scheme is used: whitespace is stripped from the input until a non-whitespace character is found, at which point the next four characters are interpreted as a 16-bit hex value, and the read cursor skips forward 4 characters and the process resumes.
+Each Wave node has a single `index` attribute to indicate its place in the list of wave nodes/blocks. A `<wave>` node consists of 512 samples stored as 2-byte (16-bit) signed values.
+
+`fzutility` writes each node's sample data out as four hexadecimal characters for each sample followed by a space: 32 rows of 16 samples each (followed by a newline). This is deemed to provide a balance between compactness and readability by humans.
+
+When reading in wave data, a more permissive scheme is used: whitespace is stripped from the input until a non-whitespace character is found, at which point the next four characters are interpreted as a 16-bit hex value, the read cursor skips forward 4 characters and the process resumes. This allows for the possibility of other tools that want to format the wave data differently and still interoperate with `fzutility`.

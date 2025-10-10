@@ -10,7 +10,7 @@ cppfiles:=main.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
 test_target:=fzutility_tests.exe
 test_cppfiles:=tests.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
 
-doc_targets:=doc/classes.png doc/fz-ml.html
+doc_targets:=doc/classes.png doc/fz-ml.html doc/fzutility.html
 
 CPPFLAGS:=-g -std=c++17 -Werror -Wall -Wno-format -I .
 
