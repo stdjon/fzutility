@@ -1015,8 +1015,11 @@ XmlLoader::XmlLoader(const XmlDocument &xml):
 
 XmlLoader::~XmlLoader() = default;
 
-Result XmlLoader::load(MemoryObjectPtr &objects) {
+Result XmlLoader::load(MemoryObjectPtr &objects, FzFileType *file_type) {
     objects.reset();
+    if(file_type) {
+        *file_type = TYPE_UNKNOWN;
+    }
     if(auto r = flag_check(flags_); !result_success(r)) {
         return r;
     }
@@ -1037,6 +1040,16 @@ Result XmlLoader::load(MemoryObjectPtr &objects) {
     const char *version = attr->Value();
     if(FZ_ML_VERSION != version) {
         return RESULT_XML_UNKNOWN_VERSION;
+    }
+    auto *type = root->FindAttribute("file_type");
+    if(!type) {
+        return RESULT_XML_MISSING_FILE_TYPE;
+    }
+    if(file_type) {
+        FzFileType ft = static_cast<FzFileType>( atoi(type->Value()) );
+        if(ft <= TYPE_EFFECT) {
+            *file_type = ft;
+        }
     }
     auto *element = root->FirstChildElement();
     if(!element) {

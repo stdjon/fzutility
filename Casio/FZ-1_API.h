@@ -51,6 +51,7 @@ using XmlPrinter = tinyxml2::XMLPrinter;
     _(RESULT_WAVE_WRITE_ERROR) \
     _(RESULT_XML_EMPTY) \
     _(RESULT_XML_MISSING_CHILDREN) \
+    _(RESULT_XML_MISSING_FILE_TYPE) \
     _(RESULT_XML_MISSING_ROOT) \
     _(RESULT_XML_MISSING_VERSION) \
     _(RESULT_XML_PARSE_ERROR) \
@@ -364,7 +365,7 @@ struct XmlLoader: Loader {
     XmlLoader(const XmlDocument &xml);
     ~XmlLoader();
 
-    Result load(MemoryObjectPtr &objects);
+    Result load(MemoryObjectPtr &objects, FzFileType *file_type = nullptr);
 
 private:
     std::unique_ptr<XmlDocument> xml_;
