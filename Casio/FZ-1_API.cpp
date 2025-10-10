@@ -876,7 +876,7 @@ Result MemoryWave::dump_wav(
             len = 512 - offset;
         }
         if(len > count) {
-            len -= count;
+            len = count;
         }
         auto *wave = iter->wave();
         assert(wave);
