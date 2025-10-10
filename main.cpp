@@ -97,7 +97,7 @@ struct Args {
     printf("Usage:\n\n"
         "  fzutility <input> [<output>]\n"
         "    Convert binary files to FZML (or vice versa).\n"
-        "  fzutility -w <range> <input> [<output>]\n"
+        "  fzutility -w <input> [<range>] [<output>]\n"
         "    Extract wav data from binary or FZML files.\n"
         "  ...\n"
         );
@@ -107,6 +107,44 @@ struct Args {
 [[noreturn]] void error(API::Result result) {
     printf("Error: %s\n", API::result_str(result));
     exit(EXIT_FAILURE);
+}
+
+bool parse_range(const std::string &range, size_t &start, int32_t &end) {
+    if(range.empty()) {
+        start = 0;
+        end = 0;
+        return true;
+    }
+    std::string str = range;
+    size_t
+        it = std::string::npos,
+        sep = std::string::npos;
+    int32_t invert_end = 1;
+    if((it = str.find('-')) != std::string::npos) {
+        //normal range start->end
+        if(!it || str.rfind('-') != it) { return false; }
+        if(str.length() - it == 1) { return false; }
+        str[it] = ' ';
+        sep = it;
+    } else if((it = str.find('~')) != std::string::npos) {
+        // inverted end range start->[actual end - end]
+        if(!it || str.rfind('~') != it) { return false; }
+        if(str.length() - it == 1) { return false; }
+        str[it] = ' ';
+        sep = it;
+        invert_end = -1;
+    }
+    if(sep == std::string::npos) {
+        return false;
+    }
+    for(auto it = str.begin(); it != str.end(); it++) {
+        if((*it < '0' || *it > '9') && (*it != ' ')) {
+            return false;
+        }
+    }
+    start = atoi(str.c_str());
+    end = atoi(str.c_str() + sep + 1) * invert_end;
+    return true;
 }
 
 bool parse_args(int argc, const char **argv, Args &args) {
@@ -217,10 +255,87 @@ int special_operation(const Args &args) {
     } else if(string_matches(args.option, { "w" })) {
         printf("Extracting Wave data...\n");
         std::string
-            range = args.first,
-            input = args.second,
+            input = args.first,
+            range = args.second,
             output = args.third;
-        return EXIT_SUCCESS;
+        size_t start = 0;
+        int32_t end = 0; // end can be negative to indicate "n samples from end"
+        if(!parse_range(range, start, end)) {
+            printf("Couldn't parse range (%s).\n", range.c_str());
+            exit(EXIT_FAILURE);
+        }
+        API::MemoryObjectPtr first;
+        auto ext = file_extension_find(input);
+        if(file_extension_matches(ext, { ".fzml" })) {
+            API::XmlLoader loader(input);
+            API::MemoryObjectPtr obj;
+            auto result = loader.load(obj);
+            if(!API::result_success(result)) {
+                error(result);
+            }
+            first = obj;
+
+        } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
+            API::MemoryBlocks blocks;
+            API::MemoryObjectPtr obj;
+            API::BlockLoader loader(input);
+            auto result = loader.load(blocks);
+            if(!API::result_success(result)) {
+                error(result);
+            }
+            result = blocks.unpack(obj);
+            if(!API::result_success(result)) {
+                error(result);
+            }
+            first = obj;
+        }
+
+        if(first) {
+            API::MemoryObjectPtr obj = first;
+            while(obj && !obj->wave()) {
+                obj = obj->next();
+            }
+            if(!obj) {
+                printf("No wave data!\n");
+                exit(EXIT_FAILURE);
+            }
+            if(end <= 0) {
+                size_t wave_count = 0;
+                API::MemoryObjectPtr wave = obj;
+                while(wave) {
+                    if(wave->wave()) {
+                        wave_count++;
+                    }
+                    wave = wave->next();
+                }
+                end = (wave_count * 512) + end;
+                assert(end >= 0);
+            }
+            size_t pos_end = end;
+            if(start > pos_end) {
+                printf("Start (%u) is after end (%u)!\n", start, pos_end);
+                exit(EXIT_FAILURE);
+            }
+            if(start && (start == pos_end)) {
+                printf(
+                    "Start (%u) is equal to end, which would produce empty output.\n",
+                    start);
+                exit(EXIT_FAILURE);
+            }
+            printf("Wave data from %u-%u...\n", start, pos_end);
+            size_t
+                offset = start,
+                count = end - start;
+            if(output.empty()) {
+                output = input;
+                file_extension_replace_or_append(output, ".wav");
+            }
+            printf("Dumping wave data to %s\n", output.c_str());
+            if(auto* wave = static_cast<API::MemoryWave*>(obj.get())) {
+                wave->dump_wav(output, 0, offset, count);
+                return EXIT_SUCCESS;
+            }
+        }
     } else {
         printf("Unknown option.\n");
     }
