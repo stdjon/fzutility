@@ -1,5 +1,6 @@
 #include "Casio/FZ-1.h"
 #include "Casio/FZ-1_API.h"
+#include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <initializer_list>
@@ -69,20 +70,34 @@ FzFileType extension_to_file_type(const std::string &ext) {
     return TYPE_UNKNOWN;
 }
 
+std::string file_type_to_extension(FzFileType file_type) {
+    std::string ext;
+    switch(file_type) {
+        default: [[fallthrough]];
+        case TYPE_UNKNOWN: assert(false); break;
+        case TYPE_BANK: ext = ".fzb"; break;
+        case TYPE_EFFECT: ext = ".fze"; break;
+        case TYPE_FULL: ext = ".fzf"; break;
+        case TYPE_VOICE: ext = ".fzv"; break;
+    }
+    return ext;
+}
+
 //------------------------------------------------------------------------------
 
 struct Args {
     std::string
-        option,
-        first,
-        second;
+        option, // optional (for operation argument, has initial '-' stripped)
+        first, // first/mandatory argument (usually an input file)
+        second, // second argument (usually output file)
+        third; // third argument, used by some operations
 };
 
 [[noreturn]] void usage() {
     printf("Usage:\n\n"
-        "  fzutility ‹input› ‹output›\n"
+        "  fzutility <input> [<output>]\n"
         "    Convert binary files to FZML (or vice versa).\n"
-        "  fzutility -w ‹range› ‹input›\n"
+        "  fzutility -w <range> <input> [<output>]\n"
         "    Extract wav data from binary or FZML files.\n"
         "  ...\n"
         );
@@ -99,6 +114,9 @@ bool parse_args(int argc, const char **argv, Args &args) {
         switch(argc) {
             default:
                 [[fallthrough]];
+            case 5:
+                args.third = argv[4];
+                [[fallthrough]];
             case 4:
                 args.second = argv[3];
                 [[fallthrough]];
@@ -113,6 +131,9 @@ bool parse_args(int argc, const char **argv, Args &args) {
         switch(argc) {
             default:
                 [[fallthrough]];
+            case 4:
+                args.third = argv[2];
+                [[fallthrough]];
             case 3:
                 args.second = argv[2];
                 [[fallthrough]];
@@ -125,17 +146,30 @@ bool parse_args(int argc, const char **argv, Args &args) {
 }
 
 int normal_operation(const Args &args) {
-    auto ext = file_extension_find(args.first);
+    std::string
+        input = args.first,
+        output = args.second;
+    auto ext = file_extension_find(input);
     if(file_extension_matches(ext, { ".fzml" })) {
-        printf("XML -> BIN\n");
+        printf("Converting FZ-ML file to binary:\n");
         API::MemoryBlocks blocks;
         API::MemoryObjectPtr obj;
-        API::XmlLoader loader(args.first);
-        API::BlockDumper dumper(args.second);
-        auto result = loader.load(obj);
+        API::XmlLoader loader(input);
+        FzFileType file_type;
+        auto result = loader.load(obj, &file_type);
         if(!API::result_success(result)) {
             error(result);
         }
+        if(output.empty()) {
+            if(file_type != TYPE_UNKNOWN) {
+                output = input;
+                std::string ext = file_type_to_extension(file_type);
+                file_extension_replace_or_append(output, ext);
+                printf("No filename supplied for output file (using %s).\n",
+                    output.c_str());
+            }
+        }
+        API::BlockDumper dumper(output);
         result = API::MemoryObject::pack(obj, blocks);
         if(!API::result_success(result)) {
             error(result);
@@ -147,11 +181,17 @@ int normal_operation(const Args &args) {
         printf("Success!\n");
         return EXIT_SUCCESS;
     } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
-        printf("BIN -> XML\n");
+        printf("Converting binary file to FZ-ML:\n");
+        if(output.empty()) {
+            output = input;
+            file_extension_replace_or_append(output, ".fzml");
+            printf("No filename supplied for output file (using %s).\n",
+                output.c_str());
+        }
         API::MemoryBlocks blocks;
         API::MemoryObjectPtr obj;
-        API::BlockLoader loader(args.first);
-        API::XmlDumper dumper(args.second, extension_to_file_type(ext));
+        API::BlockLoader loader(input);
+        API::XmlDumper dumper(output, extension_to_file_type(ext));
         API::Result result = loader.load(blocks);
         if(!API::result_success(result)) {
             error(result);
@@ -174,6 +214,15 @@ int normal_operation(const Args &args) {
 int special_operation(const Args &args) {
     if(string_matches(args.option, { "?", "h", "help", "-help" })) {
         usage();
+    } else if(string_matches(args.option, { "w" })) {
+        printf("Extracting Wave data...\n");
+        std::string
+            range = args.first,
+            input = args.second,
+            output = args.third;
+        return EXIT_SUCCESS;
+    } else {
+        printf("Unknown option.\n");
     }
     return EXIT_FAILURE;
 }
@@ -187,14 +236,6 @@ int main(int argc, const char **argv) {
     }
 
     auto ok = parse_args(argc, argv, args);
-#if 0
-    printf(
-        "ok = %u\n"
-        "args.option = %s\n"
-        "args.first = %s\n"
-        "args.second = %s\n",
-        ok, args.option.c_str(), args.first.c_str(), args.second.c_str());
-#endif
 
     if(!ok) {
         printf("Unknown option: use -? or -help for assistance");
