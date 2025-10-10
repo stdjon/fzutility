@@ -8,11 +8,16 @@
 
 using namespace Casio::FZ_1;
 
-#define CHECK_RESULT(result_) \
-    if(!API::result_success(result_)) { \
-        error(result_); \
-    }
+#define CHECK_RESULT(result_) do { \
+        if(!API::result_success(result_)) { \
+            error(result_); \
+        } \
+    } while(false)
 
+#define FAIL(...) do { \
+        printf(__VA_ARGS__); \
+        exit(EXIT_FAILURE); \
+    } while(false)
 
 //------------------------------------------------------------------------------
 
@@ -110,8 +115,7 @@ struct Args {
 }
 
 [[noreturn]] void error(API::Result result) {
-    printf("Error: %s\n", API::result_str(result));
-    exit(EXIT_FAILURE);
+    FAIL("Error: %s\n", API::result_str(result));
 }
 
 bool parse_range(const std::string &range, size_t &start, int32_t &end) {
@@ -254,8 +258,7 @@ int special_operation(const Args &args) {
         size_t start = 0;
         int32_t end = 0; // end can be negative to indicate "n samples from end"
         if(!parse_range(range, start, end)) {
-            printf("Couldn't parse range (%s).\n", range.c_str());
-            exit(EXIT_FAILURE);
+            FAIL("Couldn't parse range (%s).\n", range.c_str());
         }
         API::MemoryObjectPtr first;
         auto ext = file_extension_find(input);
@@ -283,8 +286,7 @@ int special_operation(const Args &args) {
                 obj = obj->next();
             }
             if(!obj) {
-                printf("No wave data!\n");
-                exit(EXIT_FAILURE);
+                FAIL("No wave data!\n");
             }
             if(end <= 0) {
                 size_t wave_count = 0;
@@ -297,22 +299,19 @@ int special_operation(const Args &args) {
                 }
                 end = (wave_count * 512) + end;
                 if(end < 0) {
-                    printf(
+                    FAIL(
                         "Endpoint would be %d samples before start of wave!\n",
                         -end);
-                    exit(EXIT_FAILURE);
                 }
             }
             size_t pos_end = end;
             if(start > pos_end) {
-                printf("Start (%u) is after end (%u)!\n", start, pos_end);
-                exit(EXIT_FAILURE);
+                FAIL("Start (%u) is after end (%u)!\n", start, pos_end);
             }
             if(start && (start == pos_end)) {
-                printf(
+                FAIL(
                     "Start (%u) is equal to end, which would produce empty output.\n",
                     start);
-                exit(EXIT_FAILURE);
             }
             printf("Wave data from %u-%u...\n", start, pos_end);
             size_t
