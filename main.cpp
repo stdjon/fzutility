@@ -256,89 +256,94 @@ int normal_operation(const Args &args) {
     return EXIT_FAILURE;
 }
 
+int extract_wave(const Args &args) {
+    printf("Extracting Wave data...\n");
+    std::string
+        input = args.first,
+        range = args.second,
+        output = args.third;
+    size_t start = 0;
+    int32_t end = 0; // end can be negative to indicate "n samples from end"
+    if(!parse_range(range, start, end)) {
+        FAIL("Couldn't parse range (%s).\n", range.c_str());
+    }
+    API::MemoryObjectPtr first;
+    auto ext = file_extension_find(input);
+    if(file_extension_matches(ext, { ".fzml" })) {
+        API::XmlLoader loader(input);
+        API::MemoryObjectPtr obj;
+        auto result = loader.load(obj);
+        check_result(result);
+        first = obj;
+
+    } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
+        API::MemoryBlocks blocks;
+        API::MemoryObjectPtr obj;
+        API::BlockLoader loader(input);
+        auto result = loader.load(blocks);
+        check_result(result);
+        result = blocks.unpack(obj);
+        check_result(result);
+        first = obj;
+    }
+
+    if(first) {
+        API::MemoryObjectPtr obj = first;
+        while(obj && !obj->wave()) {
+            obj = obj->next();
+        }
+        if(!obj) {
+            FAIL("No wave data!\n");
+        }
+        if(end <= 0) {
+            size_t wave_count = 0;
+            API::MemoryObjectPtr wave = obj;
+            while(wave) {
+                if(wave->wave()) {
+                    wave_count++;
+                }
+                wave = wave->next();
+            }
+            end = (wave_count * 512) + end;
+            if(end < 0) {
+                FAIL("Endpoint would be %d "
+                    "samples before start of wave!\n", -end);
+            }
+        }
+        size_t pos_end = end;
+        if(start > pos_end) {
+            FAIL("Start (%u) is after end (%u)!\n", start, pos_end);
+        }
+        if(start && (start == pos_end)) {
+            FAIL("Start (%u) is equal to end, "
+                "which would produce empty output.\n", start);
+        }
+
+        printf("Wave data from %u-%u...\n", start, pos_end);
+        size_t
+            offset = start,
+            count = end - start;
+        if(output.empty()) {
+            output = input;
+            file_extension_replace_or_append(output, ".wav");
+        }
+        printf("Dumping wave data to %s\n", output.c_str());
+        if(auto* wave = static_cast<API::MemoryWave*>(obj.get())) {
+            auto result = wave->dump_wav(output, 0, offset, count);
+            check_result(result);
+
+            printf("Success!\n");
+            return EXIT_SUCCESS;
+        }
+    }
+    return EXIT_FAILURE;
+}
+
 int special_operation(const Args &args) {
     if(string_matches(args.option, { "?", "h", "help", "-help" })) {
         usage();
     } else if(string_matches(args.option, { "w" })) {
-        printf("Extracting Wave data...\n");
-        std::string
-            input = args.first,
-            range = args.second,
-            output = args.third;
-        size_t start = 0;
-        int32_t end = 0; // end can be negative to indicate "n samples from end"
-        if(!parse_range(range, start, end)) {
-            FAIL("Couldn't parse range (%s).\n", range.c_str());
-        }
-        API::MemoryObjectPtr first;
-        auto ext = file_extension_find(input);
-        if(file_extension_matches(ext, { ".fzml" })) {
-            API::XmlLoader loader(input);
-            API::MemoryObjectPtr obj;
-            auto result = loader.load(obj);
-            check_result(result);
-            first = obj;
-
-        } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
-            API::MemoryBlocks blocks;
-            API::MemoryObjectPtr obj;
-            API::BlockLoader loader(input);
-            auto result = loader.load(blocks);
-            check_result(result);
-            result = blocks.unpack(obj);
-            check_result(result);
-            first = obj;
-        }
-
-        if(first) {
-            API::MemoryObjectPtr obj = first;
-            while(obj && !obj->wave()) {
-                obj = obj->next();
-            }
-            if(!obj) {
-                FAIL("No wave data!\n");
-            }
-            if(end <= 0) {
-                size_t wave_count = 0;
-                API::MemoryObjectPtr wave = obj;
-                while(wave) {
-                    if(wave->wave()) {
-                        wave_count++;
-                    }
-                    wave = wave->next();
-                }
-                end = (wave_count * 512) + end;
-                if(end < 0) {
-                    FAIL("Endpoint would be %d "
-                        "samples before start of wave!\n", -end);
-                }
-            }
-            size_t pos_end = end;
-            if(start > pos_end) {
-                FAIL("Start (%u) is after end (%u)!\n", start, pos_end);
-            }
-            if(start && (start == pos_end)) {
-                FAIL("Start (%u) is equal to end, "
-                    "which would produce empty output.\n", start);
-            }
-
-            printf("Wave data from %u-%u...\n", start, pos_end);
-            size_t
-                offset = start,
-                count = end - start;
-            if(output.empty()) {
-                output = input;
-                file_extension_replace_or_append(output, ".wav");
-            }
-            printf("Dumping wave data to %s\n", output.c_str());
-            if(auto* wave = static_cast<API::MemoryWave*>(obj.get())) {
-                auto result = wave->dump_wav(output, 0, offset, count);
-                check_result(result);
-
-                printf("Success!\n");
-                return EXIT_SUCCESS;
-            }
-        }
+        return extract_wave(args);
     }
 
     printf("Unknown option.\n");
