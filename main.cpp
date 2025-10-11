@@ -256,6 +256,89 @@ int normal_operation(const Args &args) {
     return EXIT_FAILURE;
 }
 
+API::MemoryObjectPtr get_memory_object_list(const std::string &filename) {
+    API::MemoryObjectPtr first;
+    auto ext = file_extension_find(filename);
+    if(file_extension_matches(ext, { ".fzml" })) {
+        API::XmlLoader loader(filename);
+        API::MemoryObjectPtr obj;
+        auto result = loader.load(obj);
+        check_result(result);
+        first = obj;
+
+    } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
+        API::MemoryBlocks blocks;
+        API::MemoryObjectPtr obj;
+        API::BlockLoader loader(filename);
+        auto result = loader.load(blocks);
+        check_result(result);
+        result = blocks.unpack(obj);
+        check_result(result);
+        first = obj;
+    } else {
+        FAIL("Unknown file extension (%s)\n", ext.c_str());
+    }
+    return first;
+}
+
+int display_info(const Args &args) {
+    std::string input = args.first;
+    size_t
+        count = 0,
+        block_count = 0,
+        bank_count = 0,
+        effect_count = 0,
+        wave_count = 0,
+        voice_block_count = 0,
+        voice_count = 0;
+
+    if(API::MemoryObjectPtr first = get_memory_object_list(input)) {
+        printf("Object Information:\n");
+        API::MemoryObjectPtr obj = first;
+        while(obj) {
+            count++;
+            if(auto *bank = obj->bank()) {
+                bank_count++;
+                block_count++;
+                printf("%3u: \"%s\" (Bank %u)\n",
+                    block_count, bank->name, bank_count);
+            } else if(obj->effect()) {
+                effect_count++;
+                block_count++;
+                printf("%3u: (Effect %u)\n", block_count, effect_count);
+            } else if(auto *voice = obj->voice()) {
+                voice_count++;
+                if((voice_count % 4) == 1) {
+                    block_count++;
+                    voice_block_count++;
+                    printf("%3u: \"%s\" (Voice %u)\n",
+                        block_count, voice->name, voice_count);
+                } else {
+                    printf("     \"%s\" (Voice %u)\n", voice->name, voice_count);
+                }
+            } else if(obj->wave()) {
+                wave_count++;
+                block_count++;
+            }
+            obj = obj->next();
+        }
+        if(wave_count > 0) {
+            printf("(+%u Wave blocks)\n", wave_count);
+        }
+        printf("\nSummary:\n"
+            "%7u Effect(s)\n"
+            "%7u Bank(s)\n"
+            "%7u Voice Block(s)\n"
+            "%7u Voice(s)\n"
+            "%7u Wave(s)\n"
+            "%5u Block(s) total\n"
+            "%5u Object(s) total\n",
+            effect_count, bank_count, voice_block_count, voice_count,
+            wave_count, block_count, count);
+    }
+    return EXIT_SUCCESS;
+}
+
 int extract_wave(const Args &args) {
     printf("Extracting Wave data...\n");
     std::string
@@ -267,27 +350,8 @@ int extract_wave(const Args &args) {
     if(!parse_range(range, start, end)) {
         FAIL("Couldn't parse range (%s).\n", range.c_str());
     }
-    API::MemoryObjectPtr first;
-    auto ext = file_extension_find(input);
-    if(file_extension_matches(ext, { ".fzml" })) {
-        API::XmlLoader loader(input);
-        API::MemoryObjectPtr obj;
-        auto result = loader.load(obj);
-        check_result(result);
-        first = obj;
 
-    } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
-        API::MemoryBlocks blocks;
-        API::MemoryObjectPtr obj;
-        API::BlockLoader loader(input);
-        auto result = loader.load(blocks);
-        check_result(result);
-        result = blocks.unpack(obj);
-        check_result(result);
-        first = obj;
-    }
-
-    if(first) {
+    if(API::MemoryObjectPtr first = get_memory_object_list(input)) {
         API::MemoryObjectPtr obj = first;
         while(obj && !obj->wave()) {
             obj = obj->next();
@@ -342,6 +406,8 @@ int extract_wave(const Args &args) {
 int special_operation(const Args &args) {
     if(string_matches(args.option, { "?", "h", "help", "-help" })) {
         usage();
+    } else if(string_matches(args.option, { "i" })) {
+        return display_info(args);
     } else if(string_matches(args.option, { "w" })) {
         return extract_wave(args);
     }
