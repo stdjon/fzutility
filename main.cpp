@@ -8,11 +8,6 @@
 
 using namespace Casio::FZ_1;
 
-#define CHECK_RESULT(result_) do { \
-        if(!API::result_success(result_)) { \
-            error(result_); \
-        } \
-    } while(false)
 
 #define FAIL(...) do { \
         printf(__VA_ARGS__); \
@@ -118,6 +113,12 @@ struct Args {
     FAIL("Error: %s\n", API::result_str(result));
 }
 
+void check_result(API::Result result_) {
+    if(!API::result_success(result_)) {
+        error(result_);
+    }
+}
+
 bool parse_range(const std::string &range, size_t &start, int32_t &end) {
     if(range.empty()) {
         start = 0;
@@ -197,6 +198,7 @@ int normal_operation(const Args &args) {
         input = args.first,
         output = args.second;
     auto ext = file_extension_find(input);
+
     if(file_extension_matches(ext, { ".fzml" })) {
         printf("Converting FZ-ML file to binary:\n");
         API::MemoryBlocks blocks;
@@ -204,7 +206,8 @@ int normal_operation(const Args &args) {
         API::XmlLoader loader(input);
         FzFileType file_type;
         auto result = loader.load(obj, &file_type);
-        CHECK_RESULT(result);
+        check_result(result);
+
         if(output.empty()) {
             if(file_type != TYPE_UNKNOWN) {
                 output = input;
@@ -214,34 +217,41 @@ int normal_operation(const Args &args) {
                     output.c_str());
             }
         }
+
         API::BlockDumper dumper(output);
         result = API::MemoryObject::pack(obj, blocks);
-        CHECK_RESULT(result);
+        check_result(result);
         result = dumper.dump(blocks);
-        CHECK_RESULT(result);
+        check_result(result);
+
         printf("Success!\n");
         return EXIT_SUCCESS;
+
     } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
         printf("Converting binary file to FZ-ML:\n");
+
         if(output.empty()) {
             output = input;
             file_extension_replace_or_append(output, ".fzml");
             printf("No filename supplied for output file (using %s).\n",
                 output.c_str());
         }
+
         API::MemoryBlocks blocks;
         API::MemoryObjectPtr obj;
         API::BlockLoader loader(input);
         API::XmlDumper dumper(output, extension_to_file_type(ext));
         API::Result result = loader.load(blocks);
-        CHECK_RESULT(result);
+        check_result(result);
         result = blocks.unpack(obj);
-        CHECK_RESULT(result);
+        check_result(result);
         result = dumper.dump(obj);
-        CHECK_RESULT(result);
+        check_result(result);
+
         printf("Success!\n");
         return EXIT_SUCCESS;
     }
+
     printf("Unknown file extension.\n");
     return EXIT_FAILURE;
 }
@@ -266,7 +276,7 @@ int special_operation(const Args &args) {
             API::XmlLoader loader(input);
             API::MemoryObjectPtr obj;
             auto result = loader.load(obj);
-            CHECK_RESULT(result);
+            check_result(result);
             first = obj;
 
         } else if(file_extension_matches(ext, { ".fzb", ".fze", ".fzf", ".fzv" })) {
@@ -274,9 +284,9 @@ int special_operation(const Args &args) {
             API::MemoryObjectPtr obj;
             API::BlockLoader loader(input);
             auto result = loader.load(blocks);
-            CHECK_RESULT(result);
+            check_result(result);
             result = blocks.unpack(obj);
-            CHECK_RESULT(result);
+            check_result(result);
             first = obj;
         }
 
@@ -299,9 +309,8 @@ int special_operation(const Args &args) {
                 }
                 end = (wave_count * 512) + end;
                 if(end < 0) {
-                    FAIL(
-                        "Endpoint would be %d samples before start of wave!\n",
-                        -end);
+                    FAIL("Endpoint would be %d "
+                        "samples before start of wave!\n", -end);
                 }
             }
             size_t pos_end = end;
@@ -309,10 +318,10 @@ int special_operation(const Args &args) {
                 FAIL("Start (%u) is after end (%u)!\n", start, pos_end);
             }
             if(start && (start == pos_end)) {
-                FAIL(
-                    "Start (%u) is equal to end, which would produce empty output.\n",
-                    start);
+                FAIL("Start (%u) is equal to end, "
+                    "which would produce empty output.\n", start);
             }
+
             printf("Wave data from %u-%u...\n", start, pos_end);
             size_t
                 offset = start,
@@ -324,13 +333,15 @@ int special_operation(const Args &args) {
             printf("Dumping wave data to %s\n", output.c_str());
             if(auto* wave = static_cast<API::MemoryWave*>(obj.get())) {
                 auto result = wave->dump_wav(output, 0, offset, count);
-                CHECK_RESULT(result);
+                check_result(result);
+
+                printf("Success!\n");
                 return EXIT_SUCCESS;
             }
         }
-    } else {
-        printf("Unknown option.\n");
     }
+
+    printf("Unknown option.\n");
     return EXIT_FAILURE;
 }
 
