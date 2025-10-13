@@ -83,11 +83,22 @@ void print_value_array(XmlPrinter &p, const char *name, size_t count, const T *o
 
 //------------------------------------------------------------------------------
 
-#define FZ_RESULT_STRING(name_) #name_,
+#define FZ_RESULT_STRING(name_, _) #name_,
+#define FZ_RESULT_DESCRIPTION(_, desc_) desc_,
 
 const char *result_str(Result r) {
     static const char *strings[] = {
         FZ_EACH_RESULT(FZ_RESULT_STRING)
+    };
+    if(r < RESULT_END_OF_LIST_) {
+        return strings[r];
+    }
+    return "??";
+}
+
+const char *result_description(Result r) {
+    static const char *strings[] = {
+        FZ_EACH_RESULT(FZ_RESULT_DESCRIPTION)
     };
     if(r < RESULT_END_OF_LIST_) {
         return strings[r];

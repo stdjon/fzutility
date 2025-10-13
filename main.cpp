@@ -121,7 +121,8 @@ struct Args {
 }
 
 [[noreturn]] void error(API::Result result) {
-    FAIL("API error: %s\n", API::result_str(result));
+    FAIL("API error: %s\n  %s",
+        API::result_str(result), API::result_description(result));
 }
 
 void check_result(API::Result result_) {

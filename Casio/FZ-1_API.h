@@ -23,45 +23,80 @@ using XmlPrinter = tinyxml2::XMLPrinter;
 // Result codes
 
 #define FZ_EACH_RESULT(_) \
-    _(RESULT_OK) \
+    _(RESULT_OK, \
+        "Operation succeeded!") \
      \
-    _(RESULT_BAD_BLOCK) \
-    _(RESULT_BAD_BLOCK_COUNT) \
-    _(RESULT_BAD_BLOCK_INDEX) \
-    _(RESULT_BAD_EFFECT_BLOCK_COUNT) \
-    _(RESULT_BAD_FILE_SIZE) \
-    _(RESULT_BAD_FILE_VERSION) \
-    _(RESULT_BAD_HEADER) \
-    _(RESULT_FILE_OPEN_ERROR) \
-    _(RESULT_FILE_READ_ERROR) \
-    _(RESULT_FILE_WRITE_ERROR) \
-    _(RESULT_MEMORY_TOO_SMALL) \
-    _(RESULT_MISMATCHED_BANK_BLOCK) \
-    _(RESULT_MISMATCHED_BLOCK_COUNT) \
-    _(RESULT_MISMATCHED_VOICE_BLOCK) \
-    _(RESULT_MISMATCHED_WAVE_BLOCK) \
-    _(RESULT_MISSING_BANK) \
-    _(RESULT_MISSING_VOICE) \
-    _(RESULT_MISSING_WAVE) \
-    _(RESULT_NO_BLOCKS) \
-    _(RESULT_UNINITIALIZED_DUMPER) \
-    _(RESULT_WAVE_BAD_OFFSET) \
-    _(RESULT_WAVE_BAD_SAMPLERATE) \
-    _(RESULT_WAVE_OPEN_ERROR) \
-    _(RESULT_WAVE_WRITE_ERROR) \
-    _(RESULT_XML_EMPTY) \
-    _(RESULT_XML_MISSING_CHILDREN) \
-    _(RESULT_XML_MISSING_FILE_TYPE) \
-    _(RESULT_XML_MISSING_ROOT) \
-    _(RESULT_XML_MISSING_VERSION) \
-    _(RESULT_XML_PARSE_ERROR) \
-    _(RESULT_XML_UNKNOWN_ELEMENT) \
-    _(RESULT_XML_UNKNOWN_VERSION) \
-    _(RESULT_XML_UNKNOWN_ROOT_ELEMENT) \
+    _(RESULT_BAD_BLOCK, \
+        "Invalid block type.") \
+    _(RESULT_BAD_BLOCK_COUNT, \
+        "Actual block count does not match the expected.") \
+    _(RESULT_BAD_BLOCK_INDEX, \
+        "Invalid block index value.") \
+    _(RESULT_BAD_EFFECT_BLOCK_COUNT, \
+        "There should never be more than one effect block.") \
+    _(RESULT_BAD_FILE_SIZE, \
+        "Binary file size is not a multiple of 1024.") \
+    _(RESULT_BAD_FILE_VERSION, \
+        "Binary file version must be 1.") \
+    _(RESULT_BAD_HEADER, \
+        "Binary file header marker is missing or invalid.") \
+    _(RESULT_FILE_OPEN_ERROR, \
+        "Cannot open file.") \
+    _(RESULT_FILE_READ_ERROR, \
+        "Cannot read from file.") \
+    _(RESULT_FILE_WRITE_ERROR, \
+        "Cannot write to file.") \
+    _(RESULT_MEMORY_TOO_SMALL, \
+        "Memory buffer is too small to hold data being dumped.") \
+    _(RESULT_MISMATCHED_BANK_BLOCK, \
+        "Actual bank block count does not match the expected.") \
+    _(RESULT_MISMATCHED_BLOCK_COUNT, \
+        "Actual block count does not match the expected.") \
+    _(RESULT_MISMATCHED_VOICE_BLOCK, \
+        "Actual voice block count does not match the expected.") \
+    _(RESULT_MISMATCHED_WAVE_BLOCK, \
+        "Actual wave block count does not match the expected.") \
+    _(RESULT_MISSING_BANK, \
+        "Expected bank does not exist at the index specified.") \
+    _(RESULT_MISSING_VOICE, \
+        "Expected voice does not exist at the index specified.") \
+    _(RESULT_MISSING_WAVE, \
+        "Expected wave does not exist at the index specified.") \
+    _(RESULT_NO_BLOCKS, \
+        "No blocks are present where some are expected.") \
+    _(RESULT_UNINITIALIZED_DUMPER, \
+        "Dumper does not have enough information to specify an operation.") \
+    _(RESULT_WAVE_BAD_OFFSET, \
+        "Wave offset is past the end of the wave data of all wave blocks.") \
+    _(RESULT_WAVE_BAD_SAMPLERATE, \
+        "Bad samplerate specifier: use 0 (36kHz), 1 (18kHz) or 2 (9kHz).") \
+    _(RESULT_WAVE_OPEN_ERROR, \
+        "Cannot open wave file.") \
+    _(RESULT_WAVE_WRITE_ERROR, \
+        "Cannot write to wave file.") \
+    _(RESULT_XML_EMPTY, \
+        "Empty XML document.") \
+    _(RESULT_XML_MISSING_CHILDREN, \
+        "XML document has no children.") \
+    _(RESULT_XML_MISSING_FILE_TYPE, \
+        "XML document root node has no \"file_type\" attribute.") \
+    _(RESULT_XML_MISSING_ROOT, \
+        "XML document has an invalid or missing root node.") \
+    _(RESULT_XML_MISSING_VERSION, \
+        "XML document root node has no \"version\" attribute.") \
+    _(RESULT_XML_PARSE_ERROR, \
+        "XML parse error") \
+    _(RESULT_XML_UNKNOWN_ELEMENT, \
+        "XML document contains an unexpected node.") \
+    _(RESULT_XML_UNKNOWN_VERSION, \
+        "XML document version is unexpected.") \
+    _(RESULT_XML_UNKNOWN_ROOT_ELEMENT, \
+        "XML document root node is unexpected.") \
      \
-    _(RESULT_END_OF_LIST_)
+    _(RESULT_END_OF_LIST_, \
+        "(end of list)")
 
-#define FZ_ENUM_RESULT(name_) name_,
+#define FZ_ENUM_RESULT(name_, _) name_,
 
 enum Result: uint32_t {
     FZ_EACH_RESULT(FZ_ENUM_RESULT)
@@ -70,6 +105,7 @@ enum Result: uint32_t {
 // Return a string representation of a Result code (for convenience when error
 // reporting/debugging)
 const char *result_str(Result r);
+const char *result_description(Result r);
 
 // Reports whether a result indicates success. (Don't just assume that RESULT_OK
 // will always be the only ever success value...)
