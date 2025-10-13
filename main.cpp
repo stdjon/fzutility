@@ -33,6 +33,16 @@ bool string_matches(
     return false;
 }
 
+bool string_equals(
+    const std::string &str, std::initializer_list<std::string> strs) {
+    for(auto it = strs.begin(); it != strs.end(); it++) {
+        if(str == *it) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool file_extension_matches(
     const std::string &ext, std::initializer_list<std::string> exts) {
     return string_matches(ext, exts);
@@ -101,16 +111,17 @@ struct Args {
 [[noreturn]] void usage() {
     printf("Usage:\n\n"
         "  fzutility <input> [<output>]\n"
-        "    Convert binary files to FZML (or vice versa).\n"
+        "    Convert binary files to FZ-ML (or vice versa).\n"
+        "  fzutility -i <input>\n"
+        "    List objects/blocks contained in input file.\n"
         "  fzutility -w <input> [<range>] [<output>]\n"
-        "    Extract wav data from binary or FZML files.\n"
-        "  ...\n"
-        );
+        "    Extract wav data from binary or FZ-ML files.\n"
+        "  ...\n");
     exit(EXIT_SUCCESS);
 }
 
 [[noreturn]] void error(API::Result result) {
-    FAIL("Error: %s\n", API::result_str(result));
+    FAIL("API error: %s\n", API::result_str(result));
 }
 
 void check_result(API::Result result_) {
@@ -157,40 +168,43 @@ bool parse_range(const std::string &range, size_t &start, int32_t &end) {
     return true;
 }
 
-bool parse_args(int argc, const char **argv, Args &args) {
-    if(argv[1][0] == '-') {
-        switch(argc) {
-            default:
-                [[fallthrough]];
-            case 5:
-                args.third = argv[4];
-                [[fallthrough]];
-            case 4:
-                args.second = argv[3];
-                [[fallthrough]];
-            case 3:
-                args.first = argv[2];
-                [[fallthrough]];
-            case 2:
-                args.option = argv[1] + 1;
-                break;
-        }
-    } else {
-        switch(argc) {
-            default:
-                [[fallthrough]];
-            case 4:
-                args.third = argv[2];
-                [[fallthrough]];
-            case 3:
-                args.second = argv[2];
-                [[fallthrough]];
-            case 2:
-                args.first = argv[1];
-                break;
+Args parse_args(int argc, const char **argv) {
+    Args args;
+    if(argc > 1) {
+        if(argv[1][0] == '-') {
+            switch(argc) {
+                default:
+                    [[fallthrough]];
+                case 5:
+                    args.third = argv[4];
+                    [[fallthrough]];
+                case 4:
+                    args.second = argv[3];
+                    [[fallthrough]];
+                case 3:
+                    args.first = argv[2];
+                    [[fallthrough]];
+                case 2:
+                    args.option = argv[1] + 1;
+                    break;
+            }
+        } else {
+            switch(argc) {
+                default:
+                    [[fallthrough]];
+                case 4:
+                    args.third = argv[3];
+                    [[fallthrough]];
+                case 3:
+                    args.second = argv[2];
+                    [[fallthrough]];
+                case 2:
+                    args.first = argv[1];
+                    break;
+            }
         }
     }
-    return true;
+    return args;
 }
 
 int normal_operation(const Args &args) {
@@ -256,7 +270,7 @@ int normal_operation(const Args &args) {
     return EXIT_FAILURE;
 }
 
-API::MemoryObjectPtr get_memory_object_list(const std::string &filename) {
+API::MemoryObjectPtr load_memory_object_list(const std::string &filename) {
     API::MemoryObjectPtr first;
     auto ext = file_extension_find(filename);
     if(file_extension_matches(ext, { ".fzml" })) {
@@ -292,7 +306,7 @@ int display_info(const Args &args) {
         voice_block_count = 0,
         voice_count = 0;
 
-    if(API::MemoryObjectPtr first = get_memory_object_list(input)) {
+    if(API::MemoryObjectPtr first = load_memory_object_list(input)) {
         printf("Object Information:\n");
         API::MemoryObjectPtr obj = first;
         while(obj) {
@@ -351,7 +365,7 @@ int extract_wave(const Args &args) {
         FAIL("Couldn't parse range (%s).\n", range.c_str());
     }
 
-    if(API::MemoryObjectPtr first = get_memory_object_list(input)) {
+    if(API::MemoryObjectPtr first = load_memory_object_list(input)) {
         API::MemoryObjectPtr obj = first;
         while(obj && !obj->wave()) {
             obj = obj->next();
@@ -374,16 +388,16 @@ int extract_wave(const Args &args) {
                     "samples before start of wave!\n", -end);
             }
         }
-        size_t pos_end = end;
-        if(start > pos_end) {
-            FAIL("Start (%u) is after end (%u)!\n", start, pos_end);
+        size_t positive_end = end;
+        if(start > positive_end) {
+            FAIL("Start (%u) is after end (%u)!\n", start, positive_end);
         }
-        if(start && (start == pos_end)) {
+        if(start && (start == positive_end)) {
             FAIL("Start (%u) is equal to end, "
                 "which would produce empty output.\n", start);
         }
 
-        printf("Wave data from %u-%u...\n", start, pos_end);
+        printf("Wave data from %u-%u...\n", start, positive_end);
         size_t
             offset = start,
             count = end - start;
@@ -404,34 +418,26 @@ int extract_wave(const Args &args) {
 }
 
 int special_operation(const Args &args) {
-    if(string_matches(args.option, { "?", "h", "help", "-help" })) {
+    if(string_equals(args.option, { "?", "h", "help", "-help" })) {
         usage();
-    } else if(string_matches(args.option, { "i" })) {
+    } else if(args.option == "i") {
         return display_info(args);
-    } else if(string_matches(args.option, { "w" })) {
+    } else if(args.option == "w") {
         return extract_wave(args);
     }
 
-    printf("Unknown option.\n");
+        printf("Unknown option: use -? or -help for assistance");
     return EXIT_FAILURE;
 }
 
 int main(int argc, const char **argv) {
-    Args args;
     int result = EXIT_SUCCESS;
 
     if(argc < 2) {
         usage();
     }
 
-    auto ok = parse_args(argc, argv, args);
-
-    if(!ok) {
-        printf("Unknown option: use -? or -help for assistance");
-        return EXIT_FAILURE;
-    }
-
-    if(args.option.empty()) {
+    if(auto args = parse_args(argc, argv); args.option.empty()) {
         result = normal_operation(args);
     } else {
         result = special_operation(args);
