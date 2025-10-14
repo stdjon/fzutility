@@ -854,13 +854,13 @@ void MemoryWave::print(XmlPrinter &p) {
 }
 
 Result MemoryWave::dump_wav(
-    std::string_view filename, uint8_t freq, size_t offset, size_t count) {
+    std::string_view filename, SampleRate freq, size_t offset, size_t count) {
 
     int32_t samplerate = 0;
     switch(freq) {
-        case 0: samplerate = 36000; break;
-        case 1: samplerate = 18000; break;
-        case 2: samplerate = 9000; break;
+        case SR_36kHz: samplerate = 36000; break;
+        case SR_18kHz: samplerate = 18000; break;
+        case SR_9kHz: samplerate = 9000; break;
         default: return RESULT_WAVE_BAD_SAMPLERATE;
     }
     assert(samplerate);

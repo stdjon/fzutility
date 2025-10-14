@@ -408,7 +408,7 @@ int extract_wave(const Args &args) {
         }
         printf("Dumping wave data to %s\n", output.c_str());
         if(auto* wave = static_cast<API::MemoryWave*>(obj.get())) {
-            auto result = wave->dump_wav(output, 0, offset, count);
+            auto result = wave->dump_wav(output, API::SR_36kHz, offset, count);
             check_result(result);
 
             printf("Success!\n");

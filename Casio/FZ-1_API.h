@@ -125,6 +125,16 @@ enum BlockType: uint8_t {
 
 
 //------------------------------------------------------------------------------
+// SampleRate
+
+enum SampleRate: uint8_t {
+    SR_36kHz = 0,
+    SR_18kHz = 1,
+    SR_9kHz = 2,
+};
+
+
+//------------------------------------------------------------------------------
 // MemoryBlocks
 
 // Models a contiguous array of Blocks plus some sanity-checking logic.
@@ -346,7 +356,7 @@ struct MemoryWave: MemoryObject {
     // WaveBlocks are available, these will be concatenated as needed.
     // freq = [0, 1, 2] as per definition in Voice::frequency
     Result dump_wav(
-        std::string_view filename, uint8_t freq, size_t offset, size_t count);
+        std::string_view filename, SampleRate freq, size_t offset, size_t count);
 
 protected:
     bool pack(Block *block, size_t index) override;
