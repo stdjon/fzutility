@@ -171,38 +171,40 @@ bool parse_range(const std::string &range, size_t &start, int32_t &end) {
 
 Args parse_args(int argc, const char **argv) {
     Args args;
-    if(argc > 1) {
-        if(argv[1][0] == '-') {
-            switch(argc) {
-                default:
-                    [[fallthrough]];
-                case 5:
-                    args.third = argv[4];
-                    [[fallthrough]];
-                case 4:
-                    args.second = argv[3];
-                    [[fallthrough]];
-                case 3:
-                    args.first = argv[2];
-                    [[fallthrough]];
-                case 2:
-                    args.option = argv[1] + 1;
-                    break;
-            }
-        } else {
-            switch(argc) {
-                default:
-                    [[fallthrough]];
-                case 4:
-                    args.third = argv[3];
-                    [[fallthrough]];
-                case 3:
-                    args.second = argv[2];
-                    [[fallthrough]];
-                case 2:
-                    args.first = argv[1];
-                    break;
-            }
+    if(argc < 2) {
+        usage();
+    }
+
+    if(argv[1][0] == '-') {
+        switch(argc) {
+            default:
+                [[fallthrough]];
+            case 5:
+                args.third = argv[4];
+                [[fallthrough]];
+            case 4:
+                args.second = argv[3];
+                [[fallthrough]];
+            case 3:
+                args.first = argv[2];
+                [[fallthrough]];
+            case 2:
+                args.option = argv[1] + 1;
+                break;
+        }
+    } else {
+        switch(argc) {
+            default:
+                [[fallthrough]];
+            case 4:
+                args.third = argv[3];
+                [[fallthrough]];
+            case 3:
+                args.second = argv[2];
+                [[fallthrough]];
+            case 2:
+                args.first = argv[1];
+                break;
         }
     }
     return args;
@@ -427,16 +429,12 @@ int special_operation(const Args &args) {
         return extract_wave(args);
     }
 
-        printf("Unknown option: use -? or -help for assistance");
+    printf("Unknown option: use -? or -help for assistance\n");
     return EXIT_FAILURE;
 }
 
 int main(int argc, const char **argv) {
     int result = EXIT_SUCCESS;
-
-    if(argc < 2) {
-        usage();
-    }
 
     if(auto args = parse_args(argc, argv); args.option.empty()) {
         result = normal_operation(args);
