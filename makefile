@@ -22,7 +22,7 @@ clean:
 test: all
 	./$(test_target) $V
 
-tags: makefile $(cppfiles) $(test_cppfiles) $(3files) $(headers) $(3headers)
+tags: $(cppfiles) $(test_cppfiles) $(3files) $(headers) $(3headers) makefile
 	ctags -R .
 
 doc: $(doc_targets)
@@ -30,15 +30,16 @@ doc: $(doc_targets)
 doc-clean:
 	rm -rf $(doc_targets)
 
-$(target): makefile $(cppfiles) $(3files) $(headers) $(3headers)
+$(target): $(cppfiles) $(3files) $(headers) $(3headers) makefile
 	g++ $(CPPFLAGS) $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
-$(test_target): makefile $(test_cppfiles) $(3files) $(headers) $(3headers)
+$(test_target): $(test_cppfiles) $(3files) $(headers) $(3headers) makefile
 	g++ $(CPPFLAGS) $(filter %.cpp,$^) $(filter %.c,$^) -o $@
 
-doc/%.png: doc/%.dot
+doc/%.png: doc/%.dot makefile
 	dot -Tpng $< -o$@
 
-doc/%.html: doc/%.md
-	pandoc -f markdown_strict -t html $< -o $@
+doc/%.html: doc/style.html doc/%.md makefile
+	cat $(filter-out makefile,$^) | pandoc -f markdown_strict -t html - -o $@
+
 

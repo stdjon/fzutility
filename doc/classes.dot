@@ -1,6 +1,6 @@
-
-
-digraph Studio {
+digraph {
+    label="using namespace Casio::FZ_1::API;\n\n"
+    labelloc=t;
     fontname="Fantasque Sans Mono Bold"
     fontsize=24
     rankdir=TB
@@ -31,27 +31,28 @@ digraph Studio {
         wav_file_in[label="«wave file»\n[.wav]"];
 
 
-        BlockDumper[label="Casio::FZ_1::API::BlockDumper"];
-        BlockLoader[label="Casio::FZ_1::API::BlockLoader"];
-        MemoryBlocks[label="Casio::FZ_1::API::MemoryBlocks"];
-        MemoryObject[label="Casio::FZ_1::API::MemoryObject"];
-        MemoryWave[label="Casio::FZ_1::API::MemoryWave"];
-        WavDumper[label="Casio::FZ_1::API::WavDumper"];
-        XmlDumper[label="Casio::FZ_1::API::XmlDumper"];
-        XmlLoader[label="Casio::FZ_1::API::XmlLoader"];
+        BlockDumper[label="BlockDumper"];
+        BlockLoader[label="BlockLoader"];
+        MemoryBlocks[label="MemoryBlocks"];
+        MemoryObject[label="MemoryObject"];
+        MemoryWave[label="MemoryWave"];
+        XmlDumper[label="XmlDumper"];
+        XmlLoader[label="XmlLoader"];
 
         block_file_out -> BlockLoader [style=dotted];
-        BlockLoader -> MemoryBlocks;
-        MemoryBlocks -> BlockDumper;
+        BlockLoader -> MemoryBlocks [label="load()"];
+        MemoryBlocks -> BlockDumper [label="dump()"];
         BlockDumper -> block_file_in [style=dotted];
-        MemoryObject -> MemoryBlocks;
-        MemoryBlocks -> MemoryObject;
+        MemoryObject -> MemoryBlocks [label="MemoryObject::pack()"];
+        MemoryBlocks -> MemoryObject [label="unpack()"];
         fzml_file_out -> XmlLoader [style=dotted];
-        XmlLoader -> MemoryObject;
-        MemoryObject -> XmlDumper;
+        XmlLoader -> MemoryObject [label="load()"];
+        MemoryObject -> XmlDumper [label="dump()"];
         XmlDumper -> fzml_file_in [style=dotted];
-        MemoryObject -> MemoryWave [style=dashed];
-        MemoryWave -> WavDumper;
-        WavDumper -> wav_file_in [style=dotted];
+        MemoryObject -> MemoryWave [style=dashed, label="wave()"];
+        MemoryWave ->wav_file_in [style=dotted, label="dump_wav()"];
+
+        { rank=source block_file_out fzml_file_out }
+        { rank=sink block_file_in fzml_file_in wav_file_in }
     }
 }

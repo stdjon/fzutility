@@ -1,13 +1,3 @@
-<style>
-    body{
-        font-family: "Georgia", "Times New Roman";
-        color: #dfdfdf;
-        background: #221100;
-        code {
-            color: #9f9fff;
-        }
-    }
-</style>
 ## Outline of an FZ-ML document (`.fzml` file)
 
 An FZ-ML document is intended to represent performance data from a Casio FZ-1 sampler in a human-readable and/or manipulable format. This data is obtained by analyzing existing MIDI dump files (with extensions `.fzb`, `.fbe`, `.fzf` or `.fzv`). These files typically hold a number of bank, voice and wave blocks corresponding to a the type of dump file in question. An effect block may also be included. An FZ-ML document will therefore contain data that corresponds to the originating binary file (and can even be used to reconstruct the original (or modified) `.fz[befv]` file if desired).
