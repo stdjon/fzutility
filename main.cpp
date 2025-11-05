@@ -1,6 +1,7 @@
 #include "Casio/FZ-1.h"
 #include "Casio/FZ-1_API.h"
 #include <assert.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <initializer_list>
@@ -8,11 +9,6 @@
 
 using namespace Casio::FZ_1;
 
-
-#define FAIL(...) do { \
-        printf(__VA_ARGS__); \
-        exit(EXIT_FAILURE); \
-    } while(false)
 
 //------------------------------------------------------------------------------
 
@@ -108,6 +104,7 @@ struct Args {
         third; // third argument, used by some operations
 };
 
+// Print usage info and exit successfully
 [[noreturn]] void usage() {
     printf("Usage:\n\n"
         "  fzutility <input> [<output>]\n"
@@ -120,14 +117,19 @@ struct Args {
     exit(EXIT_SUCCESS);
 }
 
-[[noreturn]] void error(API::Result result) {
-    FAIL("API error: %s\n  %s",
-        API::result_str(result), API::result_description(result));
+// Print an error message and exit
+[[noreturn]] void fail(const char *const fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    vprintf(fmt, va);
+    va_end(va);
+    exit(EXIT_FAILURE);
 }
 
-void check_result(API::Result result_) {
-    if(!API::result_success(result_)) {
-        error(result_);
+void check_result(API::Result result) {
+    if(!API::result_success(result)) {
+        fail("API error: %s\n  %s",
+            API::result_str(result), API::result_description(result));
     }
 }
 
@@ -174,6 +176,9 @@ Args parse_args(int argc, const char **argv) {
     if(argc < 2) {
         usage();
     }
+    if(argc > 5) {
+        fail("Too many arguments given.\n");
+    }
 
     if(argv[1][0] == '-') {
         switch(argc) {
@@ -211,6 +216,9 @@ Args parse_args(int argc, const char **argv) {
 }
 
 int normal_operation(const Args &args) {
+    if(!args.third.empty()) {
+        fail("Too many arguments given.\n");
+    }
     std::string
         input = args.first,
         output = args.second;
@@ -269,11 +277,12 @@ int normal_operation(const Args &args) {
         return EXIT_SUCCESS;
     }
 
-    printf("Unknown file extension.\n");
+    printf("Unknown file extension (filename: %s)\n", input.c_str());
     return EXIT_FAILURE;
 }
 
 API::MemoryObjectPtr load_memory_object_list(const std::string &filename) {
+    printf("Loading %s...\n", filename.c_str());
     API::MemoryObjectPtr first;
     auto ext = file_extension_find(filename);
     if(file_extension_matches(ext, { ".fzml" })) {
@@ -293,12 +302,15 @@ API::MemoryObjectPtr load_memory_object_list(const std::string &filename) {
         check_result(result);
         first = obj;
     } else {
-        FAIL("Unknown file extension (%s)\n", ext.c_str());
+        fail("Unknown file extension (filename: %s)\n", filename.c_str());
     }
     return first;
 }
 
 int display_info(const Args &args) {
+    if(!args.second.empty()) {
+        fail("Too many arguments given.\n");
+    }
     std::string input = args.first;
     size_t
         count = 0,
@@ -309,6 +321,9 @@ int display_info(const Args &args) {
         voice_block_count = 0,
         voice_count = 0;
 
+    if(input.empty()) {
+        fail("No input filename specified\n");
+    }
     if(API::MemoryObjectPtr first = load_memory_object_list(input)) {
         printf("Object Information:\n");
         API::MemoryObjectPtr obj = first;
@@ -364,8 +379,11 @@ int extract_wave(const Args &args) {
         output = args.third;
     size_t start = 0;
     int32_t end = 0; // end can be negative to indicate "n samples from end"
+    if(input.empty()) {
+        fail("No input filename specified\n");
+    }
     if(!parse_range(range, start, end)) {
-        FAIL("Couldn't parse range (%s).\n", range.c_str());
+        fail("Couldn't parse range (%s).\n", range.c_str());
     }
 
     if(API::MemoryObjectPtr first = load_memory_object_list(input)) {
@@ -374,7 +392,7 @@ int extract_wave(const Args &args) {
             obj = obj->next();
         }
         if(!obj) {
-            FAIL("No wave data!\n");
+            fail("No wave data!\n");
         }
         if(end <= 0) {
             size_t wave_count = 0;
@@ -387,16 +405,16 @@ int extract_wave(const Args &args) {
             }
             end = (wave_count * 512) + end;
             if(end < 0) {
-                FAIL("Endpoint would be %d "
+                fail("Endpoint would be %d "
                     "samples before start of wave!\n", -end);
             }
         }
         size_t positive_end = end;
         if(start > positive_end) {
-            FAIL("Start (%u) is after end (%u)!\n", start, positive_end);
+            fail("Start (%u) is after end (%u)!\n", start, positive_end);
         }
         if(start && (start == positive_end)) {
-            FAIL("Start (%u) is equal to end, "
+            fail("Start (%u) is equal to end, "
                 "which would produce empty output.\n", start);
         }
 
@@ -434,13 +452,8 @@ int special_operation(const Args &args) {
 }
 
 int main(int argc, const char **argv) {
-    int result = EXIT_SUCCESS;
-
-    if(auto args = parse_args(argc, argv); args.option.empty()) {
-        result = normal_operation(args);
-    } else {
-        result = special_operation(args);
-    }
-
-    return result;
+    auto args = parse_args(argc, argv);
+    return args.option.empty() ?
+        normal_operation(args) :
+        special_operation(args);
 }
