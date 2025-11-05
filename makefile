@@ -1,13 +1,19 @@
 .PHONY: all clean doc doc-clean test
 
+ifeq ($(OS),Windows_NT)
+binary=$1.exe
+else
+binary=$1
+endif
+
 headers:=Casio/FZ-1.h Casio/FZ-1_API.h
 3headers:=3/tinyxml2/tinyxml2.h 3/tinywav/tinywav.h
 3files=3/tinyxml2/tinyxml2.cpp 3/tinywav/tinywav.c
 
-target:=fzutility.exe
+target:=$(call binary,fzutility)
 cppfiles:=main.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
 
-test_target:=fzutility_tests.exe
+test_target:=$(call binary,fzutility_tests)
 test_cppfiles:=tests.cpp Casio/FZ-1.cpp Casio/FZ-1_API.cpp
 
 doc_targets:=doc/classes.png doc/fz-ml.html doc/fzutility.html
@@ -43,3 +49,5 @@ doc/%.html: doc/style.html doc/%.md makefile
 	cat $(filter-out makefile,$^) | pandoc -f markdown_strict -t html - -o $@
 
 
+%::
+	@echo 'No rule for target "$@"'
