@@ -6,31 +6,33 @@
 
 namespace Casio::FZ_1 {
 
-// yes this is gross, but so is code repetition...
-// (but there probably is a way to do this with templates...)
-#define RETURN_VOICE(N_) \
-    assert(N_ < 4); \
-    switch(N_) { \
-        default: return v1; \
-        case 1: return v2; \
-        case 2: return v3; \
-        case 3: return v4; \
+template<typename T>struct ReturnVoice { using Type = Voice; };
+template<typename T>struct ReturnVoice<const T> { using Type = const Voice; };
+
+template<typename T>typename ReturnVoice<T>::Type &voice_at(T &v, size_t n) {
+    assert(n < 4); \
+    switch(n) { \
+        default: return v.v1; \
+        case 1: return v.v2; \
+        case 2: return v.v3; \
+        case 3: return v.v4; \
     }
+}
 
 Voice &VoiceBlock::operator[](size_t n) {
-    RETURN_VOICE(n);
+    return voice_at(*this, n);
 }
 
 const Voice &VoiceBlock::operator[](size_t n) const {
-    RETURN_VOICE(n);
+    return voice_at(*this, n);
 }
 
 Voice &VoiceBlockFileHeader::operator[](size_t n) {
-    RETURN_VOICE(n);
+    return voice_at(*this, n);
 }
 
 const Voice &VoiceBlockFileHeader::operator[](size_t n) const {
-    RETURN_VOICE(n);
+    return voice_at(*this, n);
 }
 
 
