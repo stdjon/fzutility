@@ -49,7 +49,7 @@ inspects a file and prints out a list of the objects it contains (presence or ab
 
 ### Wave data extraction
 
-The `-w` (or `-W`) option can be used to extract wave data from a binary or FZ-ML file, should any exist:
+The `-w` option can be used to extract wave data from a binary or FZ-ML file, should any exist:
 
 ```
 fzutility -w ‹input› [‹range›] [‹output›]
