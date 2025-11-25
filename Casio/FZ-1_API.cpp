@@ -5,8 +5,6 @@
 #include <ctype.h>
 #include <stdio.h>
 
-#define TRACE //printf("@-> %s:%u\n", __FILE__, __LINE__)
-
 namespace Casio::FZ_1::API {
 
 static const std::string
@@ -20,7 +18,12 @@ static const std::string
 
 struct FileCloser {
     FileCloser(FILE *f): f_(f) {}
-    ~FileCloser() { fclose(f_); }
+    ~FileCloser() {
+        if(f_) {
+            fclose(f_);
+        }
+    }
+private:
     FILE *f_;
 };
 

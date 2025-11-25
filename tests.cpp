@@ -33,7 +33,7 @@ struct Tests {
     }
 
 #define CHECK(X_) \
-    if(verbose_) { printf("  %s ?\n", #X_); } \
+    if(verbose_) { printf("  " #X_ " ?\n"); } \
     assert(X_)
 
 #define RUN(V_) \
@@ -679,7 +679,7 @@ T_(xml_roundtrip_full, {
 //------------------------------------------------------------------------------
     }// end of Tests::Tests()
 
-    void check_bank(Bank &bank) {
+    void check_bank(const Bank &bank) {
         CHECK(bank.voice_count == 1);
         CHECK(bank.midi_hi[0] == 96);
         CHECK(bank.midi_lo[0] == 36);
@@ -695,7 +695,7 @@ T_(xml_roundtrip_full, {
         CHECK(std::string{ bank.name } == "BBBBBBBBBBBB");
     }
 
-    void check_voice(Voice &voice) {
+    void check_voice(const Voice &voice) {
         CHECK(voice.data_start == 0);
         CHECK(voice.data_end == 1928);
         CHECK(voice.play_start == 96);

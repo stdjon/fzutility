@@ -12,6 +12,7 @@ using namespace Casio::FZ_1;
 
 //------------------------------------------------------------------------------
 
+// ASCII case-insensitive string match
 bool string_matches(const std::string &sa, const std::string &sb) {
     return std::equal(sa.begin(), sa.end(), sb.begin(), sb.end(),
         [](unsigned char ca, unsigned char cb) {
