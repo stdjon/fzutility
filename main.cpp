@@ -9,6 +9,7 @@
 
 using namespace Casio::FZ_1;
 
+static const std::string VERSION = "0.1.1";
 
 //------------------------------------------------------------------------------
 
@@ -112,9 +113,10 @@ struct Args {
         "    Convert binary files to FZ-ML (or vice versa).\n"
         "  fzutility -i <input>\n"
         "    List objects/blocks contained in input file.\n"
+        "  fzutility -v\n"
+        "    Display version number.\n"
         "  fzutility -w <input> [<range>] [<output>]\n"
-        "    Extract wav data from binary or FZ-ML files.\n"
-        "  ...\n");
+        "    Extract wav data from binary or FZ-ML files.\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -372,6 +374,11 @@ int display_info(const Args &args) {
     return EXIT_SUCCESS;
 }
 
+int display_version(const Args&) {
+    printf("fzutility v%s\n", VERSION.c_str());
+    return EXIT_SUCCESS;
+}
+
 int extract_wave(const Args &args) {
     printf("Extracting Wave data...\n");
     std::string
@@ -444,6 +451,8 @@ int special_operation(const Args &args) {
         usage();
     } else if(args.option == "i") {
         return display_info(args);
+    } else if(args.option == "v") {
+        return display_version(args);
     } else if(args.option == "w") {
         return extract_wave(args);
     }
