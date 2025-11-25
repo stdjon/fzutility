@@ -130,7 +130,7 @@ struct Args {
 void check_result(API::Result result) {
     if(!API::result_success(result)) {
         fail("API error: %s\n  %s",
-            API::result_str(result), API::result_description(result));
+            API::result_string(result), API::result_description(result));
     }
 }
 

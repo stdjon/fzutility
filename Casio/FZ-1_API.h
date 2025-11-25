@@ -104,7 +104,7 @@ enum Result: uint32_t {
 
 // Return a string representation of a Result code (for convenience when error
 // reporting/debugging)
-const char *result_str(Result r);
+const char *result_string(Result r);
 const char *result_description(Result r);
 
 // Reports whether a result indicates success. (Don't just assume that RESULT_OK
