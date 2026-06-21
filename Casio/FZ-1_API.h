@@ -407,6 +407,8 @@ template<size_t N>BlockLoader::BlockLoader(const uint8_t (&storage)[N]):
 
 struct XmlLoader: Loader {
     XmlLoader(std::string_view filename);
+    XmlLoader(const void *storage, size_t size);
+    template<size_t N>XmlLoader(const uint8_t (&storage)[N]);
     XmlLoader(std::unique_ptr<XmlDocument> &&xml);
     XmlLoader(const XmlDocument &xml);
     ~XmlLoader();
@@ -414,9 +416,15 @@ struct XmlLoader: Loader {
     Result load(MemoryObjectPtr &objects, FzFileType *file_type = nullptr);
 
 private:
+    std::unique_ptr<XmlDocument> parse_xml(
+        const char *storage, size_t size, uint8_t &flags);
+
     std::unique_ptr<XmlDocument> xml_;
     uint8_t flags_ = 0;
 };
+
+template<size_t N>XmlLoader::XmlLoader(const uint8_t (&storage)[N]):
+    XmlLoader(storage, N) {}
 
 
 //------------------------------------------------------------------------------

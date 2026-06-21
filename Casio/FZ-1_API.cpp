@@ -1012,12 +1012,11 @@ XmlLoader::XmlLoader(std::string_view filename) {
             return;
         }
     }
-    xml_ = std::make_unique<XmlDocument>();
-    auto e = xml_->Parse(storage.get(), size);
-    if(e != tinyxml2::XML_SUCCESS) {
-        flags_ |= XML_PARSE_ERROR;
-    }
+    xml_ = parse_xml(storage.get(), size, flags_);
 }
+
+XmlLoader::XmlLoader(const void *storage, size_t size):
+    xml_(parse_xml(static_cast<const char*>(storage), size, flags_)) {}
 
 XmlLoader::XmlLoader(std::unique_ptr<XmlDocument> &&xml):
     xml_(std::move(xml)) {}
@@ -1089,6 +1088,16 @@ Result XmlLoader::load(MemoryObjectPtr &objects, FzFileType *file_type) {
     }
     objects = first;
     return RESULT_OK;
+}
+
+std::unique_ptr<XmlDocument> XmlLoader::parse_xml(
+    const char *storage, size_t size, uint8_t &flags) {
+    auto xml = std::make_unique<XmlDocument>();
+    auto e = xml->Parse(storage, size);
+    if(e != tinyxml2::XML_SUCCESS) {
+        flags |= XML_PARSE_ERROR;
+    }
+    return xml;
 }
 
 
